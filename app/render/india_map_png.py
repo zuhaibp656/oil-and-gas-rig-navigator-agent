@@ -105,10 +105,11 @@ def render_india_eez_map_png(summary: FleetSummary) -> bytes:
     # Layer 3: 120 Candidate & Active Offshore Wells
     for w in summary.wells:
         wx, wy = project(w.longitude, w.latitude)
-        if w.readiness_status == WellReadinessStatus.READY_SAFE:
+        readiness = getattr(w, "readiness", getattr(w, "readiness_status", None))
+        if readiness == WellReadinessStatus.READY_SAFE:
             col = (16, 185, 129, 215)  # Emerald green safe target well
             r = 3
-        elif w.readiness_status == WellReadinessStatus.ACTIVE_PRODUCING:
+        elif readiness == WellReadinessStatus.ACTIVE_PRODUCING:
             col = (56, 189, 248, 165)  # Sky blue active well
             r = 2
         else:
