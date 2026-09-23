@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Automated Vertex AI Reasoning Engine (Agent Garden) & Gemini Enterprise Deployer.
 
-1. Ensures GCS staging bucket exists.
-2. Deploys (or updates in-place) the ORMWO ADK Agent on Vertex AI Agent Engine (Reasoning Engine).
-3. Automatically discovers any Gemini Enterprise (Discovery Engine / AgentSpace) app in the
+1. Uses `gcloud auth print-access-token` OAuth2 credentials so deployment works seamlessly
+   from both CloudTop and Argolis Cloud Shell.
+2. Ensures GCS staging bucket exists (`gs://<project>-ormwo-agent-staging`).
+3. Deploys (or updates in-place) the ORMWO ADK Agent on Vertex AI Agent Engine (Reasoning Engine).
+4. Automatically discovers all Gemini Enterprise (Discovery Engine / AgentSpace) apps in the
    Argolis project and registers the deployed agent so it appears directly in Gemini Enterprise chat.
 """
 
@@ -17,15 +19,22 @@ import sys
 import urllib.error
 import urllib.request
 
+import google.oauth2.credentials
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 
 def get_gcloud_access_token() -> str:
-    """Retrieve active OAuth2 token from gcloud in Argolis Cloud Shell."""
+    """Retrieve active OAuth2 token from gcloud."""
     out = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True)
     return out.strip()
+
+
+def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
+    """Create google.oauth2.credentials.Credentials from active gcloud session."""
+    return google.oauth2.credentials.Credentials(get_gcloud_access_token())
 
 
 def ensure_staging_bucket(project_id: str, region: str, bucket_name: str) -> str:
@@ -33,8 +42,9 @@ def ensure_staging_bucket(project_id: str, region: str, bucket_name: str) -> str
     from google.cloud import storage
     from google.cloud.exceptions import Conflict, NotFound
 
+    creds = get_gcloud_credentials()
     clean_name = bucket_name.replace("gs://", "").split("/")[0]
-    client = storage.Client(project=project_id)
+    client = storage.Client(project=project_id, credentials=creds)
     try:
         client.get_bucket(clean_name)
         print(f"[OK] GCS Staging Bucket verified: gs://{clean_name}")
@@ -59,8 +69,14 @@ def deploy_to_vertex_agent_engine(
     from vertexai.preview import reasoning_engines
     from app.integration.agent import root_agent
 
+    creds = get_gcloud_credentials()
     staging_uri = ensure_staging_bucket(project_id, region, staging_bucket)
-    vertexai.init(project=project_id, location=region, staging_bucket=staging_uri)
+    vertexai.init(
+        project=project_id,
+        location=region,
+        staging_bucket=staging_uri,
+        credentials=creds,
+    )
 
     adk_app = reasoning_engines.AdkApp(
         agent=root_agent,
@@ -89,7 +105,6 @@ def deploy_to_vertex_agent_engine(
     if state_file.exists():
         existing_resource_name = state_file.read_text(encoding="utf-8").strip()
 
-    # Check if an engine with the same display_name already exists in the project
     if not existing_resource_name:
         try:
             for eng in reasoning_engines.ReasoningEngine.list():
@@ -132,7 +147,6 @@ def deploy_to_vertex_agent_engine(
     res_name = remote_engine.resource_name
     state_file.write_text(res_name, encoding="utf-8")
 
-    # Update deployment_metadata.json
     meta_path = ROOT_DIR / "deployment_metadata.json"
     meta = {
         "deployment_target": "agent_runtime",
@@ -163,10 +177,9 @@ def register_with_gemini_enterprise(
 
     app_ids: list[str] = []
     if gemini_app_id:
-        app_ids.append(gemini_app_id)
+        app_ids.append(f"{location}:{gemini_app_id}")
     else:
-        # Auto-discover all Gemini Enterprise / AgentSpace Engines in global, us, and eu
-        for loc in [location, "global", "us", "eu"]:
+        for loc in ["global", "us", "eu"]:
             list_url = (
                 f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}"
                 f"/locations/{loc}/collections/default_collection/engines"
@@ -176,28 +189,23 @@ def register_with_gemini_enterprise(
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     for eng in data.get("engines", []):
-                        # name format: projects/.../locations/.../collections/default_collection/engines/<ENGINE_ID>
                         eng_name = eng.get("name", "")
                         eng_id = eng_name.rsplit("/", 1)[-1]
-                        if eng_id and (loc, eng_id) not in app_ids:
-                            app_ids.append(f"{loc}:{eng_id}")
+                        tag = f"{loc}:{eng_id}"
+                        if eng_id and tag not in app_ids:
+                            app_ids.append(tag)
             except Exception:
                 continue
 
     if not app_ids:
         print(
             "[INFO] No existing Gemini Enterprise engine auto-discovered via v1alpha list. "
-            "You can pass --gemini-app-id <YOUR_ENGINE_ID> to bind directly, or select the Reasoning Engine "
-            "inside the Gemini Enterprise UI."
+            "You can bind the Reasoning Engine in Gemini Enterprise UI or pass --gemini-app-id."
         )
         return
 
     for loc_and_id in app_ids:
-        if ":" in loc_and_id:
-            loc, eng_id = loc_and_id.split(":", 1)
-        else:
-            loc, eng_id = location, loc_and_id
-
+        loc, eng_id = loc_and_id.split(":", 1)
         reg_url = (
             f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}"
             f"/locations/{loc}/collections/default_collection/engines/{eng_id}"
