@@ -11,9 +11,13 @@ Rule: The model outputs strict JSON/terse text only. Interactive Vega maps and A
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 import uuid
 from typing import Any
 
+import google.auth
+import google.oauth2.credentials
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.apps import App
@@ -21,6 +25,31 @@ from google.adk.models import Gemini
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
+
+
+class _GcloudCliCredentials(google.oauth2.credentials.Credentials):
+    """Self-refreshing OAuth2 credentials backed by `gcloud auth print-access-token`."""
+
+    def __init__(self) -> None:
+        token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
+        super().__init__(token=token)
+
+    def refresh(self, request: Any) -> None:
+        self.token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
+
+
+_ORIG_GOOGLE_AUTH_DEFAULT = google.auth.default
+
+
+def _patched_google_auth_default(*args: Any, **kwargs: Any) -> tuple[Any, str | None]:
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or "agy-sandbox-a58b7"
+    try:
+        return _GcloudCliCredentials(), project
+    except Exception:
+        return _ORIG_GOOGLE_AUTH_DEFAULT(*args, **kwargs)
+
+
+google.auth.default = _patched_google_auth_default
 
 try:
     from app.contracts import FleetSummary
@@ -57,7 +86,12 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-MODEL: str = "gemini-2.5-flash"
+MODEL: str = os.environ.get(
+    "ORMWO_MODEL",
+    "gemini-3-flash-preview"
+    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "FALSE"
+    else "gemini-2.5-flash",
+)
 
 
 def _take_pending(callback_context: CallbackContext | None, key: str) -> Any | None:
