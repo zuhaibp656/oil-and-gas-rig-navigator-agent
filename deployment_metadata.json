@@ -1,0 +1,7 @@
+{
+  "deployment_target": "agent_runtime",
+  "is_a2a": true,
+  "agent_directory": "app",
+  "region": "asia-south1",
+  "deployment_timestamp": "2026-09-23T17:15:00.000000+00:00"
+}
