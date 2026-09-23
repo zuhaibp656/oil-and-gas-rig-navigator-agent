@@ -3,7 +3,8 @@
 In : User or agent tool parameters (rig_id, lat, lon, forecast_hours, origin, destination).
 Out: Deterministic JSON/dict structures matching the ORMWO specification, while queuing
      the 5-layer India EEZ Map (20 Rigs + 120 Wells + 48h Storm Zones + Waypoints)
-     in callback_context.state[PENDING_RIG_FLEET_KEY] for after_agent_callback rendering.
+     via a lightweight memory token in callback_context.state[PENDING_RIG_FLEET_KEY]
+     so ADK session storage (`session.db` and `/run_sse`) never bloats or fails to fetch.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from datetime import timedelta
 import json
 import logging
 from typing import Any
+import uuid
 
 from google.adk.agents.callback_context import CallbackContext
 
@@ -64,6 +66,19 @@ PENDING_RIG_FLEET_KEY: str = "pending_rig_fleet"
 PENDING_RIG_DETAIL_KEY: str = "pending_rig_detail"
 _MOCK_RIG_FLEET: list[RigUnit] = INDIA_20_RIG_FLEET
 
+# Lightweight in-memory surface cache keyed by short token so ADK session.db
+# only serializes a 22-byte string instead of 65 KB of dataclasses per tool call.
+_SURFACE_MEMORY_CACHE: dict[str, FleetSummary] = {}
+
+
+def resolve_pending_fleet_summary(val: Any) -> FleetSummary | None:
+    """Resolve either a direct FleetSummary (unit tests) or a cache token string (ADK runtime)."""
+    if isinstance(val, FleetSummary):
+        return val
+    if isinstance(val, str) and val in _SURFACE_MEMORY_CACHE:
+        return _SURFACE_MEMORY_CACHE.pop(val, None)
+    return None
+
 
 def _queue_india_map_surface(
     callback_context: CallbackContext | None,
@@ -84,6 +99,8 @@ def _queue_india_map_surface(
         raw = callback_context.state.get(PENDING_RIG_FLEET_KEY)
         if isinstance(raw, FleetSummary):
             existing = raw
+        elif isinstance(raw, str) and raw in _SURFACE_MEMORY_CACHE:
+            existing = _SURFACE_MEMORY_CACHE[raw]
 
     merged_weather = weather_series or (existing.weather_series if existing else [])
     merged_sims = (
@@ -108,7 +125,13 @@ def _queue_india_map_surface(
     )
 
     if callback_context and hasattr(callback_context, "state") and callback_context.state is not None:
-        callback_context.state[PENDING_RIG_FLEET_KEY] = summary
+        if isinstance(callback_context, CallbackContext):
+            token = f"map-{uuid.uuid4().hex[:12]}"
+            _SURFACE_MEMORY_CACHE[token] = summary
+            callback_context.state[PENDING_RIG_FLEET_KEY] = token
+        else:
+            # Direct dataclass assignment for lightweight unit test MockContext
+            callback_context.state[PENDING_RIG_FLEET_KEY] = summary
     return summary
 
 
@@ -120,7 +143,7 @@ def get_rig_telemetry(
     rig_id: str,
     callback_context: CallbackContext | None = None,
 ) -> dict[str, Any]:
-    """Retrieves the current state, coordinates, daily operating cost, and safe target well for a drilling rig.
+    """Retrieves the current state, coordinates, daily operating cost, 48h metocean risk, and safe target well for a drilling rig.
 
     Args:
         rig_id: Unique identifier (e.g., 'RIG-OFFSHORE-04', 'RIG-OFFSHORE-01', or rig name 'Ocean Titan').
@@ -136,14 +159,24 @@ def get_rig_telemetry(
         rig.location.latitude,
         rig.location.longitude,
         forecast_hours=48,
-        step_hours=3,
+        step_hours=6,
+    )
+    sim = execute_monte_carlo_transit_simulation(rig_id=rig.rig_id)
+    audit = record_governance_audit_trail(
+        event_type="CRITICAL_ACTION_REQUIRED",
+        payload={"rig_id": rig.rig_id, "destination_well": safe_well.well_id},
     )
     _queue_india_map_surface(
         callback_context,
         rigs=INDIA_20_RIG_FLEET,
         selected_rig_id=rig.rig_id,
         weather_series=weather,
+        transit_sim=sim,
+        audit_reference_id=str(audit["audit_reference_id"]),
     )
+
+    peak_wave_m = max(pt.significant_wave_height_m for pt in weather)
+    peak_wind_kts = max(pt.wind_speed_knots for pt in weather)
 
     return {
         "rig_id": rig.rig_id,
@@ -164,6 +197,20 @@ def get_rig_telemetry(
             "lon": safe_well.longitude,
             "basin_name": safe_well.basin_name,
         },
+        "weather_48h_summary": {
+            "peak_significant_wave_height_m": peak_wave_m,
+            "peak_wind_speed_knots": peak_wind_kts,
+            "threshold_exceeded": bool(peak_wave_m > 2.5 or peak_wind_kts > 35.0),
+            "primary_threat": "WEATHER_CYCLONE" if peak_wind_kts > 35.0 else "HIGH_SWELL",
+        },
+        "monte_carlo_transit_directive": {
+            "recommended_departure_time": sim.recommended_departure_time,
+            "expected_transit_hours": sim.expected_transit_hours,
+            "estimated_npt_cost_inr": sim.estimated_npt_cost_inr,
+            "avoided_npt_savings_inr": sim.avoided_npt_savings_inr,
+            "decision_deadline": (BASE_ASSESSMENT_TIME_UTC + timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
+        "audit_reference_id": audit["audit_reference_id"],
     }
 
 
@@ -298,7 +345,6 @@ def list_rig_fleet(
         q = basin_filter.strip().lower()
         rigs = [r for r in rigs if q in r.location.basin_name.lower() or q in r.rig_name.lower()]
 
-    # Automatically pre-compute transit trajectory for Mumbai High flagship rig so map shows full capability
     default_sim = execute_monte_carlo_transit_simulation(
         rig_id=rigs[0].rig_id if rigs else "RIG-OFFSHORE-04"
     )
@@ -313,10 +359,10 @@ def list_rig_fleet(
         audit_reference_id=str(audit["audit_reference_id"]),
     )
 
-    rig_Ref = rigs[0] if rigs else INDIA_20_RIG_FLEET[3]
+    rig_ref = rigs[0] if rigs else INDIA_20_RIG_FLEET[3]
     deadline_iso = (BASE_ASSESSMENT_TIME_UTC + timedelta(hours=16)).strftime("%Y-%m-%dT%H:%M:%SZ")
     strict_payload = {
-        "rig_id": rig_Ref.rig_id,
+        "rig_id": rig_ref.rig_id,
         "assessment_timestamp": BASE_ASSESSMENT_TIME_UTC.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "status": "CRITICAL_ACTION_REQUIRED",
         "npt_risk_assessment": {

@@ -2,10 +2,10 @@
 
 In : Operational trigger or user inquiry regarding India's 20 offshore rigs, 120+ candidate wells,
      48-hour metocean forecasts, or storm evacuation/redeployment optimization.
-Out: Strict deterministic JSON (or concise tabular report) + native A2UI v0.9 Map of India & EEZ
+Out: Strict deterministic JSON (or concise tabular report) + visual 5-Layer Map of India & EEZ
      (20 Rigs, 120 Candidate Wells, 48h Storm Zones & Waypoint Trajectories).
-Rule: The model outputs strict JSON/terse text only. Interactive Vega maps and A2UI cards are attached
-      deterministically by callbacks in Python.
+Rule: The model outputs strict JSON/terse text only. Interactive Vega maps (for Gemini Enterprise)
+      and inline high-res India EEZ maps (for `adk web`) are attached deterministically in Python.
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-import uuid
 from typing import Any
+import uuid
 
 import google.auth
 import google.oauth2.credentials
@@ -49,7 +49,8 @@ def _patched_google_auth_default(*args: Any, **kwargs: Any) -> tuple[Any, str | 
         return _ORIG_GOOGLE_AUTH_DEFAULT(*args, **kwargs)
 
 
-google.auth.default = _patched_google_auth_default
+if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "TRUE":
+    google.auth.default = _patched_google_auth_default
 
 try:
     from app.contracts import FleetSummary
@@ -60,6 +61,7 @@ try:
         list_rig_fleet,
         log_audit_trail,
         query_rig_telemetry,
+        resolve_pending_fleet_summary,
         run_monte_carlo_transit_simulation,
     )
     from app.render.a2ui_emit import build_rig_fleet_surface
@@ -67,6 +69,7 @@ try:
         A2A_DATA_PART_CLOSE_TAG,
         A2A_DATA_PART_OPEN_TAG,
     )
+    from app.render.india_map_png import render_india_eez_map_png
 except ImportError:
     from contracts import FleetSummary
     from integration.tools import (
@@ -76,6 +79,7 @@ except ImportError:
         list_rig_fleet,
         log_audit_trail,
         query_rig_telemetry,
+        resolve_pending_fleet_summary,
         run_monte_carlo_transit_simulation,
     )
     from render.a2ui_emit import build_rig_fleet_surface
@@ -83,6 +87,7 @@ except ImportError:
         A2A_DATA_PART_CLOSE_TAG,
         A2A_DATA_PART_OPEN_TAG,
     )
+    from render.india_map_png import render_india_eez_map_png
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +99,8 @@ MODEL: str = os.environ.get(
 )
 
 
-def _take_pending(callback_context: CallbackContext | None, key: str) -> Any | None:
-    """Safely read and clear whatever a tool queued under key."""
+def _take_pending(callback_context: CallbackContext | None, key: str) -> FleetSummary | None:
+    """Safely read, resolve, and clear whatever a tool queued under key."""
     if callback_context is None or callback_context.state is None:
         return None
     val = callback_context.state.get(key)
@@ -104,26 +109,35 @@ def _take_pending(callback_context: CallbackContext | None, key: str) -> Any | N
             callback_context.state[key] = None
         except Exception:
             pass
-    return val
+    return resolve_pending_fleet_summary(val)
 
 
 def emit_a2ui_surface(
     callback_context: CallbackContext | None = None,
     **kwargs: Any,
 ) -> types.Content | None:
-    """Attach the deterministic A2UI India EEZ Map surface earned this turn to the model's reply."""
+    """Attach the deterministic India EEZ Map surface earned this turn to the model's reply."""
     surface_id = f"surface-{uuid.uuid4().hex[:8]}"
 
     if callback_context is None:
         return None
 
     pending_fleet = _take_pending(callback_context, PENDING_RIG_FLEET_KEY)
+    if not pending_fleet or not isinstance(pending_fleet, FleetSummary):
+        return None
+
+    use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "TRUE"
+    force_a2ui = os.environ.get("ORMWO_EMIT_A2UI_DATAPART", "FALSE").upper() == "TRUE"
 
     parts: list[types.Part] = []
-    if pending_fleet and isinstance(pending_fleet, FleetSummary):
-        parts = build_rig_fleet_surface(pending_fleet, surface_id)
-    else:
-        return None
+    try:
+        png_bytes = render_india_eez_map_png(pending_fleet)
+        parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
+    except Exception as exc:
+        logger.warning("render_india_eez_map_png fallback: %s", exc)
+
+    if use_vertex or force_a2ui:
+        parts.extend(build_rig_fleet_surface(pending_fleet, surface_id))
 
     if not parts:
         return None
@@ -159,7 +173,7 @@ def strip_fabricated_a2ui(
         return None
 
     logger.warning("strip_fabricated_a2ui: removed A2UI payloads from %d text part(s)", removed)
-    llm_response.content.parts = cleaned or [types.Part(text="")]
+    llm_response.content.parts = cleaned or [types.Part(text="[India EEZ Map Surface Attached]")]
     return llm_response
 
 
@@ -168,7 +182,7 @@ def sanitize_llm_request_history(
     llm_request: LlmRequest | None = None,
     **kwargs: Any,
 ) -> LlmResponse | None:
-    """Scrub A2UI tags and base64 payloads from prior turns to prevent token exhaustion loops."""
+    """Scrub A2UI tags and inline_data payloads from prior turns to prevent token exhaustion loops."""
     if llm_request is None or not getattr(llm_request, "contents", None):
         return None
 
@@ -177,6 +191,10 @@ def sanitize_llm_request_history(
             continue
         cleaned_parts: list[types.Part] = []
         for part in content.parts:
+            # 1. Strip any inline_data (PNG map images or A2UI wire blobs) from prior turns
+            if getattr(part, "inline_data", None) is not None:
+                continue
+            # 2. Strip any <a2a_datapart_json> text blobs
             text = getattr(part, "text", None)
             if text and A2A_DATA_PART_OPEN_TAG in text:
                 stripped = _remove_datapart_blobs(text)
@@ -185,15 +203,24 @@ def sanitize_llm_request_history(
             else:
                 cleaned_parts.append(part)
 
-        content.parts = cleaned_parts or [types.Part(text="")]
+        content.parts = cleaned_parts or [
+            types.Part(text="[Visual India EEZ Map Surface Rendered in UI]")
+        ]
 
     if llm_request.config is None:
-        llm_request.config = types.GenerateContentConfig(max_output_tokens=1024)
-    elif (
-        not getattr(llm_request.config, "max_output_tokens", None)
-        or llm_request.config.max_output_tokens > 1024
-    ):
-        llm_request.config.max_output_tokens = 1024
+        llm_request.config = types.GenerateContentConfig(
+            max_output_tokens=1024,
+            temperature=0.0,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+    else:
+        if (
+            not getattr(llm_request.config, "max_output_tokens", None)
+            or llm_request.config.max_output_tokens > 1024
+        ):
+            llm_request.config.max_output_tokens = 1024
+        llm_request.config.temperature = 0.0
+        llm_request.config.thinking_config = types.ThinkingConfig(thinking_budget=0)
 
     return None
 
@@ -220,22 +247,12 @@ Your objective is to minimize Non-Productive Time (NPT) and eliminate avoidable 
 
 OPERATIONAL PRINCIPLES:
 1. Determinism First: Never calculate trajectories, distances, transit durations, or probabilistic costs in prompt tokens. Delegate all computations to Python tools.
-2. Non-Verbose Output: Respond strictly in the ORMWO structured JSON schema (or a concise 3-line tabular summary if explicitly asked). Do not provide conversational filler or preambles.
-3. Actionable Early Warnings: Enforce a strict 48-hour advance decision threshold (significant_wave_height_m > 2.5m OR wind_speed_knots > 35 kts) for weather-induced suspension, relocation, or re-assigning a rig to a safe alternate well coordinate so it never sits idle.
-4. Interactive India EEZ Map Surface: Every tool invocation automatically renders the interactive 5-Layer Map of India & EEZ Waters (India coastline, 20 Rigs, 120 Candidate Wells, 48h Storm Hazard Zones, and Waypoint Trajectories) via after_agent_callback. NEVER emit Vega JSON or <a2a_datapart_json> tags in your text output.
+2. Fast Single-Batch Tool Execution: When assessing a specific rig (e.g. 'RIG-OFFSHORE-04'), call `get_rig_telemetry` (or call `get_rig_telemetry`, `get_marine_weather_forecast`, `run_monte_carlo_transit_simulation`, and `log_audit_trail` in parallel in a single batch) so all telemetry, 48h weather, Monte Carlo waypoints, and CAG #15117 audit hashes are retrieved immediately. For fleet-wide or capability questions, call `list_rig_fleet`.
+3. Non-Verbose Output: Respond strictly in the ORMWO structured JSON schema (plus a concise 3-line summary if asked what you can do). Do not provide conversational filler.
+4. Actionable Early Warnings: Enforce a strict 48-hour advance decision threshold (significant_wave_height_m > 2.5m OR wind_speed_knots > 35 kts) for weather-induced suspension, relocation, or re-assigning a rig to a safe alternate well coordinate so it never sits idle.
+5. Interactive India EEZ Map Surface: Every tool invocation automatically attaches the 5-Layer Map of India & EEZ Waters (India coastline, 20 Rigs, 120 Candidate Wells, 48h Storm Hazard Zones, and Waypoint Trajectories) via after_agent_callback. NEVER emit Vega JSON or <a2a_datapart_json> tags in your text output.
 
-DETERMINISTIC EXECUTION PIPELINE:
-Upon receiving an inquiry or operational trigger:
-1. INGEST: Fetch target rig telemetry via `get_rig_telemetry` (or `list_rig_fleet` for a basin/fleet sweep).
-2. WEATHER CHECK: Fetch 48-hour metocean forecast via `get_marine_weather_forecast`.
-3. THRESHOLD EVALUATION:
-   - If `significant_wave_height_m` > 2.5m OR `wind_speed_knots` > 35 kts within 48h:
-     - Mark weather threat as CRITICAL.
-     - Execute `run_monte_carlo_transit_simulation` to determine the optimal safe well coordinate and routing waypoints.
-   - Else:
-     - Mark operational window as CLEAR.
-4. AUDIT: Call `log_audit_trail` with decision inputs and outputs.
-5. REPORT: Return the structured JSON outcome adhering to:
+REQUIRED OUTPUT JSON SCHEMA:
 {
   "rig_id": "string",
   "assessment_timestamp": "ISO 8601 string",
@@ -257,13 +274,15 @@ Upon receiving an inquiry or operational trigger:
 
 root_agent = Agent(
     name="rig_navigator_agent",
-    description="Offshore Rig Mobilization & Weather Optimizer (ORMWO) — 48h Metocean Risk, Monte Carlo Well Redeployment & Interactive India EEZ Map for Gemini Enterprise",
+    description="Offshore Rig Mobilization & Weather Optimizer (ORMWO) — 48h Metocean Risk, Monte Carlo Well Redeployment & Interactive India EEZ Map",
     model=Gemini(
         model=MODEL,
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     generate_content_config=types.GenerateContentConfig(
         max_output_tokens=1024,
+        temperature=0.0,
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
     ),
     instruction=ORMWO_SYSTEM_INSTRUCTION,
     tools=[
