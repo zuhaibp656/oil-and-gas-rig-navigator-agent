@@ -119,11 +119,16 @@ def render_india_eez_map_png(summary: FleetSummary) -> bytes:
 
     # Layer 5: Monte Carlo Optimal Redeployment Waypoints (drawn before rigs for clarity)
     if sim and sim.optimal_routing_waypoints:
-        wp_pts = [project(wp["lon"], wp["lat"]) for wp in sim.optimal_routing_waypoints]
+        wp_pts = []
+        for wp in sim.optimal_routing_waypoints:
+            if isinstance(wp, dict):
+                w_lat, w_lon = float(wp["lat"]), float(wp["lon"])
+            else:
+                w_lat, w_lon = float(wp[0]), float(wp[1])
+            wp_pts.append(project(w_lon, w_lat))
         for i in range(len(wp_pts) - 1):
             draw.line([wp_pts[i], wp_pts[i + 1]], fill=(34, 197, 94, 255), width=3)
-        for wp in sim.optimal_routing_waypoints:
-            px, py = project(wp["lon"], wp["lat"])
+        for px, py in wp_pts:
             draw.ellipse(
                 [px - 5, py - 5, px + 5, py + 5],
                 fill=(34, 197, 94, 255),
