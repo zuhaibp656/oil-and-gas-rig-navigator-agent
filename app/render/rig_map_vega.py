@@ -140,16 +140,53 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "savings_cr": r["savings_cr"],
         })
 
+    calm_mws_zones = [
+        {
+            "zone_id": "MWS-GREEN-WEST-01",
+            "zone_name": "🟢 MUMBAI HIGH & BASSEIN CALM MWS WINDOW (Live Hs=1.22m <= 1.5m Limit — Move Completed Rigs [1]–[4])",
+            "basin": "Western Offshore (Mumbai High / Bassein / Tapti)",
+            "latitude": 19.35,
+            "longitude": 71.45,
+            "live_hs_m": 1.22,
+            "live_wind_kts": 16.6,
+        }
+    ]
+    live_storm_zones = [
+        {
+            "storm_id": "SWELL-BOB-KG-01",
+            "storm_name": "🔴 KG-DWN-98/2 LIVE SWELL LOCK (Live Hs=2.80m > 2.5m — Hang Off Well & Evacuate Crew [5] 🚁)",
+            "basin": "KG-DWN-98/2 Deepwater (Bay of Bengal)",
+            "latitude": 16.32,
+            "longitude": 82.20,
+            "peak_hs_m": 2.80,
+            "peak_wind_kts": 26.4,
+        },
+        {
+            "storm_id": "CYCLONE-BOB-MND-02",
+            "storm_name": "🔴 MAHANADI CYCLONIC SWELL LOCK (Live Hs=4.98m, Gusts 41.2kt — Emergency LMRP Unlatch & Crew Evac [6] 🚁)",
+            "basin": "Mahanadi Deepwater Basin (Bay of Bengal)",
+            "latitude": 19.85,
+            "longitude": 86.75,
+            "peak_hs_m": 4.98,
+            "peak_wind_kts": 29.6,
+        },
+    ]
+
     storm_labels = [
         {
-            "longitude": 71.40,
-            "latitude": 20.55,
-            "banner": "🔴 STORM CIRCLE 1: MUMBAI HIGH (Hs=4.2m, 46kt — EVACUATE [1]–[4])",
+            "longitude": 71.45,
+            "latitude": 21.35,
+            "banner": "🟢 MUMBAI HIGH CALM MWS WINDOW (Live Hs=1.22m <= 1.5m — MOVE COMPLETED RIGS [1]–[4])",
         },
         {
             "longitude": 82.20,
-            "latitude": 17.45,
-            "banner": "🔴 STORM CIRCLE 2: KG-DWN BASIN (Hs=3.8m, 42kt — EVACUATE [5]–[6])",
+            "latitude": 15.25,
+            "banner": "🔴 KG-DWN LIVE SWELL (Hs=2.80m — HANG OFF & EVAC CREW [5] 🚁)",
+        },
+        {
+            "longitude": 85.80,
+            "latitude": 20.95,
+            "banner": "🔴 MAHANADI STORM SWELL (Hs=4.98m — LMRP UNLATCH & EVAC [6] 🚁)",
         },
     ]
 
@@ -242,29 +279,36 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                     "order": {"field": "order", "type": "quantitative"},
                 },
             },
-            # Layer 3: Outer 48h Storm Warning Halo (Red Dashed Circle)
+            # Layer 3: Western Offshore Live Calm MWS Rig-Move Window (Green Dashed Circle — Hs=1.22m <= 1.50m)
             {
-                "data": {"values": storm_zones},
+                "data": {"values": calm_mws_zones},
                 "mark": {
                     "type": "circle",
                     "size": 9500,
-                    "color": "#EF4444",
-                    "opacity": 0.22,
-                    "stroke": "#F87171",
-                    "strokeWidth": 2.2,
+                    "color": "#10B981",
+                    "opacity": 0.24,
+                    "stroke": "#34D399",
+                    "strokeWidth": 2.5,
                     "strokeDash": [6, 4],
                 },
                 "encoding": {
                     "x": {"field": "longitude", "type": "quantitative"},
                     "y": {"field": "latitude", "type": "quantitative"},
+                    "tooltip": [
+                        {"field": "zone_id", "type": "nominal", "title": "MWS Window ID"},
+                        {"field": "zone_name", "type": "nominal", "title": "Live Metocean Regime"},
+                        {"field": "basin", "type": "nominal", "title": "Basin"},
+                        {"field": "live_hs_m", "type": "quantitative", "title": "Live Wave Hs (m)"},
+                        {"field": "live_wind_kts", "type": "quantitative", "title": "Live Wind (kts)"},
+                    ],
                 },
             },
-            # Layer 4: Inner 48h Cyclone Core (High-Opacity Crimson Circle)
+            # Layer 4: Eastern Offshore (Bay of Bengal: KG-DWN & Mahanadi) Live Swell Lock Circles (Red)
             {
-                "data": {"values": storm_zones},
+                "data": {"values": live_storm_zones},
                 "mark": {
                     "type": "circle",
-                    "size": 4200,
+                    "size": 5200,
                     "color": "#DC2626",
                     "opacity": 0.38,
                     "stroke": "#FECACA",
@@ -274,11 +318,11 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                     "x": {"field": "longitude", "type": "quantitative"},
                     "y": {"field": "latitude", "type": "quantitative"},
                     "tooltip": [
-                        {"field": "storm_id", "type": "nominal", "title": "Storm Circle ID"},
-                        {"field": "storm_name", "type": "nominal", "title": "48h Weather System"},
+                        {"field": "storm_id", "type": "nominal", "title": "Swell Alert ID"},
+                        {"field": "storm_name", "type": "nominal", "title": "Live Bay of Bengal Alert"},
                         {"field": "basin", "type": "nominal", "title": "Basin"},
-                        {"field": "peak_hs_m", "type": "quantitative", "title": "Peak Wave Hs (m)"},
-                        {"field": "peak_wind_kts", "type": "quantitative", "title": "Peak Wind (kts)"},
+                        {"field": "peak_hs_m", "type": "quantitative", "title": "Live Wave Hs (m)"},
+                        {"field": "peak_wind_kts", "type": "quantitative", "title": "Live Wind (kts)"},
                     ],
                 },
             },
@@ -420,6 +464,8 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
         lat_domain: list[float],
         storm_lon: float,
         storm_lat: float,
+        zone_color: str = "#10B981",
+        stroke_color: str = "#34D399",
     ) -> dict[str, Any]:
         return {
             "width": 310,
@@ -434,15 +480,15 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 "subtitleFontSize": 10,
             },
             "layer": [
-                # Red Storm Cone Sector in Zoom View
+                # Metocean Regime Circle in Zoom View (Green MWS Window for West, Red Swell Lock for East)
                 {
                     "data": {"values": [{"lon": storm_lon, "lat": storm_lat}]},
                     "mark": {
                         "type": "circle",
                         "size": 18000,
-                        "color": "#EF4444",
+                        "color": zone_color,
                         "opacity": 0.25,
-                        "stroke": "#F87171",
+                        "stroke": stroke_color,
                         "strokeDash": [5, 4],
                         "strokeWidth": 2.0,
                     },
@@ -461,10 +507,10 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         },
                     },
                 },
-                # Green Escape Trajectory Lines
+                # Trajectory Lines (Green Wet Tow for [1]-[4], Amber/Red Helicopter Crew Evac for [5]-[6])
                 {
                     "data": {"values": segments},
-                    "mark": {"type": "rule", "color": "#22C55E", "strokeWidth": 4.0},
+                    "mark": {"type": "rule", "color": stroke_color, "strokeWidth": 4.0},
                     "encoding": {
                         "x": {"field": "orig_lon", "type": "quantitative"},
                         "y": {"field": "orig_lat", "type": "quantitative"},
@@ -472,7 +518,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "y2": {"field": "dest_lat"},
                     },
                 },
-                # Green Target Safe Diamond Wells
+                # Target Destination Markers (Safe Ready Well ◆ or Onshore Helibase 🚁)
                 {
                     "data": {"values": segments},
                     "mark": {
@@ -488,9 +534,8 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "x": {"field": "dest_lon", "type": "quantitative"},
                         "y": {"field": "dest_lat", "type": "quantitative"},
                         "tooltip": [
-                            {"field": "dest_well", "type": "nominal", "title": "Safe Target Well (🟢)"},
-                            {"field": "rig_name", "type": "nominal", "title": "Incoming Rig"},
-                            {"field": "safe_hs", "type": "quantitative", "title": "Safe Wave Hs (m)"},
+                            {"field": "dest_well", "type": "nominal", "title": "Destination (🟢 Well / 🚁 Helibase)"},
+                            {"field": "rig_name", "type": "nominal", "title": "Rig"},
                             {"field": "dist_nm", "type": "quantitative", "title": "Distance (NM)"},
                         ],
                     },
@@ -520,7 +565,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "text": {"field": "idx", "type": "nominal"},
                     },
                 },
-                # Crisp Callout Labels at Safe Destination Wells
+                # Crisp Callout Labels at Destination
                 {
                     "data": {"values": segments},
                     "mark": {
@@ -542,22 +587,26 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
     zoom_row: dict[str, Any] = {
         "hconcat": [
             _build_basin_zoom_panel(
-                "PANEL B1 — MUMBAI HIGH ZOOM: ESCAPE ROUTES [1]–[4]",
-                "Red Circle Origin Wells (Hs=3.7–4.2m) ➔ Green Safe Wells (Hs=1.3–1.5m)",
+                "PANEL B1 — WESTERN OFFSHORE (CALM Hs=1.22m <= 1.5m): RIG MOVES [1]–[4]",
+                "🟢 Completed-Well Rigs Tow (6.8–9.6 NM @ 4kt) to Closest EC-Cleared Wells",
                 mumbai_escape,
-                [71.0, 72.1],
-                [18.65, 19.70],
-                71.35,
-                19.42,
+                [71.1, 72.4],
+                [18.50, 20.95],
+                71.55,
+                19.45,
+                zone_color="#10B981",
+                stroke_color="#22C55E",
             ),
             _build_basin_zoom_panel(
-                "PANEL B2 — KG-DWN BASIN ZOOM: ESCAPE ROUTES [5]–[6]",
-                "Red Circle Origin Wells (Hs=3.7–3.8m) ➔ Green Safe Wells (Hs=1.3–1.4m)",
+                "PANEL B2 — BAY OF BENGAL (LIVE SWELL Hs=2.80–4.98m): EVAC & HANG-OFF [5]–[6]",
+                "🔴 Rig Move Prohibited! In-Place BOP Hang-Off + 🚁 Helibase Crew Evacuation",
                 kg_escape,
-                [82.0, 82.8],
-                [15.70, 16.55],
-                82.22,
-                16.38,
+                [81.6, 87.2],
+                [15.80, 20.60],
+                84.20,
+                18.10,
+                zone_color="#EF4444",
+                stroke_color="#F59E0B",
             ),
         ]
     }

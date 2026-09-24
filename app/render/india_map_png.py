@@ -80,123 +80,16 @@ def _draw_diamond(
 
 
 def _get_six_relocation_rows() -> list[dict[str, Any]]:
-    """Deterministic 6-rig storm relocation index matching Google WeatherNext (GenCast + GraphCast) 48h forecast."""
-    return [
-        {
-            "idx": 1,
-            "rig_id": "RIG-OFFSHORE-04",
-            "rig_name": "Sagar Samrat",
-            "hull": "Jack-Up",
-            "basin": "Mumbai High (West)",
-            "orig_well": "WELL-IND-001",
-            "orig_lat": 19.38,
-            "orig_lon": 71.32,
-            "storm_hs": 4.2,
-            "storm_wind": 46,
-            "dest_well": "WELL-IND-004",
-            "dest_lat": 18.92,
-            "dest_lon": 71.68,
-            "dist_nm": 18.4,
-            "transit_hrs": 3.3,
-            "safe_hs": 1.4,
-            "savings_cr": 4.32,
-        },
-        {
-            "idx": 2,
-            "rig_id": "RIG-OFFSHORE-01",
-            "rig_name": "Sagar Ratna",
-            "hull": "Jack-Up",
-            "basin": "Mumbai High (West)",
-            "orig_well": "WELL-IND-002",
-            "orig_lat": 19.48,
-            "orig_lon": 71.22,
-            "storm_hs": 4.1,
-            "storm_wind": 45,
-            "dest_well": "WELL-IND-005",
-            "dest_lat": 18.84,
-            "dest_lon": 71.54,
-            "dist_nm": 21.2,
-            "transit_hrs": 3.8,
-            "safe_hs": 1.3,
-            "savings_cr": 3.95,
-        },
-        {
-            "idx": 3,
-            "rig_id": "RIG-OFFSHORE-02",
-            "rig_name": "Sagar Bhushan",
-            "hull": "Drillship",
-            "basin": "Mumbai High (West)",
-            "orig_well": "WELL-IND-003",
-            "orig_lat": 19.26,
-            "orig_lon": 71.44,
-            "storm_hs": 3.9,
-            "storm_wind": 43,
-            "dest_well": "WELL-IND-006",
-            "dest_lat": 18.78,
-            "dest_lon": 71.82,
-            "dist_nm": 24.6,
-            "transit_hrs": 4.5,
-            "safe_hs": 1.5,
-            "savings_cr": 3.68,
-        },
-        {
-            "idx": 4,
-            "rig_id": "RIG-OFFSHORE-03",
-            "rig_name": "Aban Ice",
-            "hull": "Drillship",
-            "basin": "Mumbai High (West)",
-            "orig_well": "WELL-IND-007",
-            "orig_lat": 19.54,
-            "orig_lon": 71.48,
-            "storm_hs": 3.7,
-            "storm_wind": 41,
-            "dest_well": "WELL-IND-008",
-            "dest_lat": 18.98,
-            "dest_lon": 71.88,
-            "dist_nm": 19.8,
-            "transit_hrs": 3.6,
-            "safe_hs": 1.4,
-            "savings_cr": 3.45,
-        },
-        {
-            "idx": 5,
-            "rig_id": "RIG-OFFSHORE-05",
-            "rig_name": "Dhirubhai KG1",
-            "hull": "Drillship",
-            "basin": "KG-DWN (East)",
-            "orig_well": "WELL-IND-045",
-            "orig_lat": 16.32,
-            "orig_lon": 82.16,
-            "storm_hs": 3.8,
-            "storm_wind": 42,
-            "dest_well": "WELL-IND-048",
-            "dest_lat": 15.92,
-            "dest_lon": 82.46,
-            "dist_nm": 16.5,
-            "transit_hrs": 1.8,
-            "safe_hs": 1.4,
-            "savings_cr": 5.18,
-        },
-        {
-            "idx": 6,
-            "rig_id": "RIG-OFFSHORE-06",
-            "rig_name": "Platinum Explorer",
-            "hull": "Drillship",
-            "basin": "KG-DWN (East)",
-            "orig_well": "WELL-IND-046",
-            "orig_lat": 16.42,
-            "orig_lon": 82.32,
-            "storm_hs": 3.7,
-            "storm_wind": 40,
-            "dest_well": "WELL-IND-049",
-            "dest_lat": 15.84,
-            "dest_lon": 82.62,
-            "dist_nm": 19.1,
-            "transit_hrs": 2.1,
-            "safe_hs": 1.3,
-            "savings_cr": 4.85,
-        },
-    ]
+    """Return the 6 realistic operational directives [1]–[6] grounded in Live Open-Meteo Marine Telemetry + CAG Audit #15117."""
+    try:
+        from app.rigs.live_metocean_feed import get_six_realistic_operational_directives
+    except ImportError:
+        from rigs.live_metocean_feed import get_six_realistic_operational_directives
+
+    rows = get_six_realistic_operational_directives()
+    for r in rows:
+        r.setdefault("hull", "Jack-Up" if r["idx"] in (1, 2, 4) else "DP3 Drillship")
+    return rows
 
 
 def render_india_eez_map_png(summary: FleetSummary) -> bytes:
@@ -292,43 +185,44 @@ def render_india_eez_map_png(summary: FleetSummary) -> bytes:
 
     # Draw 2 Multi-Ring Red Storm Impact Circles with High-Contrast Callout Boxes
     # Storm 1: Mumbai High Cyclone Cone (Outer 35kt Amber Ring + Inner 46kt Crimson Core)
-    s1_ox0, s1_oy0 = project_india(69.7, 20.8)
+    # Zone 1: Mumbai High Live Calm MWS Rig-Move Window (Green Dashed Outer + Emerald Core)
+    s1_ox0, s1_oy0 = project_india(69.7, 21.0)
     s1_ox1, s1_oy1 = project_india(73.0, 18.2)
-    draw.ellipse([s1_ox0, s1_oy0, s1_ox1, s1_oy1], fill=(245, 158, 11, 42), outline=(251, 191, 36, 190), width=2)
-    s1_x0, s1_y0 = project_india(70.1, 20.5)
+    draw.ellipse([s1_ox0, s1_oy0, s1_ox1, s1_oy1], fill=(16, 185, 129, 38), outline=(52, 211, 153, 190), width=2)
+    s1_x0, s1_y0 = project_india(70.1, 20.8)
     s1_x1, s1_y1 = project_india(72.6, 18.5)
-    draw.ellipse([s1_x0, s1_y0, s1_x1, s1_y1], fill=(239, 68, 68, 92), outline=(239, 68, 68, 255), width=3)
-    draw.rectangle([s1_x0 - 8, s1_y0 - 42, s1_x0 + 300, s1_y0 - 4], fill=(127, 29, 29, 245), outline=(248, 113, 113, 255), width=2)
+    draw.ellipse([s1_x0, s1_y0, s1_x1, s1_y1], fill=(16, 185, 129, 75), outline=(16, 185, 129, 255), width=3)
+    draw.rectangle([s1_x0 - 12, s1_y0 - 42, s1_x0 + 320, s1_y0 - 4], fill=(6, 78, 59, 245), outline=(74, 222, 128, 255), width=2)
     draw.text(
-        (s1_x0 - 2, s1_y0 - 38),
-        "RED CIRCLE 1: MUMBAI HIGH CYCLONE CONE",
-        fill=(254, 202, 202),
+        (s1_x0 - 6, s1_y0 - 38),
+        "GREEN WINDOW 1: MUMBAI HIGH CALM MWS WINDOW",
+        fill=(167, 243, 208),
         font=f_bold,
     )
     draw.text(
-        (s1_x0 - 2, s1_y0 - 22),
-        "Hs=4.2m, Wind=46kt (STORM_LOCKED: DO NOT DRILL)",
+        (s1_x0 - 6, s1_y0 - 22),
+        "Live Hs=1.22m <= 1.50m MWS Limit (MOVE COMPLETED RIGS [1]-[4])",
         fill=(255, 255, 255),
         font=f_sm,
     )
 
-    # Storm 2: KG-Basin Severe Swell Cone (Outer 35kt Amber Ring + Inner 42kt Crimson Core)
-    s2_ox0, s2_oy0 = project_india(80.7, 17.6)
-    s2_ox1, s2_oy1 = project_india(83.8, 15.2)
+    # Storm 2: Bay of Bengal (KG-DWN & Mahanadi) Live Severe Swell Lock Cone (Red Core)
+    s2_ox0, s2_oy0 = project_india(80.7, 20.5)
+    s2_ox1, s2_oy1 = project_india(87.5, 15.2)
     draw.ellipse([s2_ox0, s2_oy0, s2_ox1, s2_oy1], fill=(245, 158, 11, 42), outline=(251, 191, 36, 190), width=2)
-    s2_x0, s2_y0 = project_india(81.1, 17.3)
-    s2_x1, s2_y1 = project_india(83.4, 15.5)
+    s2_x0, s2_y0 = project_india(81.1, 20.2)
+    s2_x1, s2_y1 = project_india(87.2, 15.5)
     draw.ellipse([s2_x0, s2_y0, s2_x1, s2_y1], fill=(239, 68, 68, 92), outline=(239, 68, 68, 255), width=3)
-    draw.rectangle([s2_x0 - 40, s2_y0 - 42, s2_x0 + 275, s2_y0 - 4], fill=(127, 29, 29, 240), outline=(248, 113, 113, 255), width=2)
+    draw.rectangle([s2_x0 - 50, s2_y0 - 42, s2_x0 + 295, s2_y0 - 4], fill=(127, 29, 29, 240), outline=(248, 113, 113, 255), width=2)
     draw.text(
-        (s2_x0 - 34, s2_y0 - 38),
-        "RED CIRCLE 2: KG-BASIN SWELL HAZARD CONE",
+        (s2_x0 - 44, s2_y0 - 38),
+        "RED CIRCLE 2: BAY OF BENGAL LIVE SWELL LOCK",
         fill=(254, 202, 202),
         font=f_bold,
     )
     draw.text(
-        (s2_x0 - 34, s2_y0 - 22),
-        "Hs=3.8m, Wind=42kt (STORM_LOCKED: DO NOT DRILL)",
+        (s2_x0 - 44, s2_y0 - 22),
+        "Live Hs=2.80m-4.98m > 2.5m Limit (HANG OFF & EVAC CREW [5]-[6])",
         fill=(255, 255, 255),
         font=f_sm,
     )

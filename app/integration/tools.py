@@ -396,6 +396,20 @@ def forecast_storm_zones_and_redeployments(
             "avoided_npt_savings_cr": report["executive_summary"]["total_fleet_avoided_npt_savings_inr_crore"],
         },
     )
+    try:
+        from app.rigs.live_metocean_feed import (
+            fetch_live_india_eez_metocean,
+            get_six_realistic_operational_directives,
+        )
+    except ImportError:
+        from rigs.live_metocean_feed import (
+            fetch_live_india_eez_metocean,
+            get_six_realistic_operational_directives,
+        )
+
+    live_telemetry = fetch_live_india_eez_metocean()
+    realistic_directives = get_six_realistic_operational_directives()
+
     _queue_india_map_surface(
         callback_context,
         rigs=INDIA_20_RIG_FLEET,
@@ -404,6 +418,8 @@ def forecast_storm_zones_and_redeployments(
         audit_reference_id=str(audit["audit_reference_id"]),
     )
     report["audit_reference_id"] = audit["audit_reference_id"]
+    report["live_open_meteo_marine_telemetry"] = live_telemetry
+    report["mws_and_cag_15117_operational_directives"] = realistic_directives
     return report
 
 
