@@ -155,11 +155,27 @@ def _take_pending(callback_context: CallbackContext | None, key: str) -> FleetSu
     return resolve_pending_fleet_summary(val)
 
 
+def _build_standout_links_markdown() -> str:
+    """Build a prominent, impossible-to-miss Call-to-Action Markdown block for the Interactive HTML Map & 4-Panel PNG."""
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
+    bucket_name = f"{project_id}-agent-staging"
+    html_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
+    html_cloud = f"https://storage.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
+    png_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_4panel_latest.png"
+    return (
+        "\n\n---\n"
+        "### 🌐 Interactive Full-Screen Command Map & High-Res 4-Panel Infographic\n"
+        f"- 🚀 **[CLICK HERE TO LAUNCH INTERACTIVE FULL-SCREEN BATHYMETRIC HTML MAP (Leaflet + Click-to-Fly Rigs [1]–[6]) ↗]({html_mtls})**  \n"
+        f"  *(Alternate Link: [Open Interactive HTML Map via storage.cloud.google.com ↗]({html_cloud}))*\n"
+        f"- 🖼️ **[CLICK HERE TO OPEN FULL-SIZE 1680×1080 4-PANEL COMMAND INFOGRAPHIC (PNG) ↗]({png_mtls})**\n"
+    )
+
+
 def emit_a2ui_surface(
     callback_context: CallbackContext | None = None,
     **kwargs: Any,
 ) -> types.Content | None:
-    """Attach the deterministic 4-Panel India EEZ Tactical Infographic + A2UI v0.9 Card directly in chat."""
+    """Attach the Full-Width 3-Tier Bathymetric A2UI v0.9 Card + upload Interactive HTML & 4-Panel PNG to GCS."""
     surface_id = f"surface-{uuid.uuid4().hex[:8]}"
 
     if callback_context is None:
@@ -171,32 +187,29 @@ def emit_a2ui_surface(
 
     parts: list[types.Part] = []
 
-    # 1. Always render the high-resolution 1680x1080 4-Panel Tactical Infographic PNG inline
-    #    (Panel A: India EEZ Map, Panel B: High-Mag Basin Escape Zoom [1]..[6],
-    #     Panel C: Complete Symbol & Color Index Legend, Panel D: Numbered Relocation Table)
-    #    so it renders directly inside Gemini Enterprise and `adk web` without clicking external links.
+    # 1. Generate the 1680x1080 4-Panel Tactical Infographic PNG and publish both HTML + PNG to GCS
+    png_bytes: bytes | None = None
     try:
         png_bytes = render_india_eez_map_png(pending_fleet)
-        parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
     except Exception as exc:
         logger.warning("render_india_eez_map_png fallback: %s", exc)
 
-    # 2. Also attach the A2UI v0.9 Card surface (with inlined `spec: vega_spec` + Markdown tables)
+    try:
+        publish_interactive_html_map(pending_fleet, surface_id, png_bytes=png_bytes)
+    except Exception as exc:
+        logger.warning("publish_interactive_html_map fallback: %s", exc)
+
+    # Only attach raw Part.from_bytes when running in local `adk web` (in Gemini Enterprise, raw
+    # inline_data renders as a tiny 64px chip, whereas the A2UI Card's 3-Tier VegaChart renders at full 680x860px width).
+    if png_bytes and os.path.exists("/usr/local/google/home/zuhaibp"):
+        parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
+
+    # 2. Attach the Full-Width A2UI v0.9 Card surface (with inlined 3-Tier Bathymetric `spec: vega_spec`,
+    #    prominent top/bottom Interactive HTML Map links, Legend, and 5-Column Relocation Table)
     try:
         parts.extend(build_rig_fleet_surface(pending_fleet, surface_id))
     except Exception as exc:
         logger.warning("build_rig_fleet_surface fallback: %s", exc)
-
-    # 3. Publish the full-screen HTML map silently in the background (with a single subtle link)
-    try:
-        _, cloud_html_url = publish_interactive_html_map(pending_fleet, surface_id)
-        parts.append(
-            types.Part(
-                text=f"\n\n*Optional Full-Screen Map View: [Open Interactive EEZ Map]({cloud_html_url})*"
-            )
-        )
-    except Exception:
-        pass
 
     if not parts:
         return None
@@ -206,14 +219,16 @@ def emit_a2ui_surface(
 
 
 def strip_fabricated_a2ui(
+    callback_context: CallbackContext | None = None,
     llm_response: LlmResponse | None = None,
     **kwargs: Any,
 ) -> LlmResponse | None:
-    """Delete any A2UI payload the model wrote into its own prose."""
+    """Delete any fabricated A2UI payload and deterministically append the Standout HTML Map & PNG Links to final prose."""
     if llm_response is None or llm_response.content is None:
         return None
 
     parts = llm_response.content.parts or []
+    has_function_call = any(getattr(p, "function_call", None) is not None for p in parts)
     cleaned: list[types.Part] = []
     removed = 0
 
@@ -227,6 +242,21 @@ def strip_fabricated_a2ui(
         removed += 1
         if stripped.strip():
             cleaned.append(types.Part(text=stripped))
+
+    # If this is the final text turn (no tool calls), guarantee the standout Interactive HTML Map & PNG links
+    # appear right at the bottom of the main chat bubble (above the copy/feedback buttons and A2UI Card).
+    if not has_function_call and cleaned:
+        last_idx = -1
+        for i in range(len(cleaned) - 1, -1, -1):
+            if getattr(cleaned[i], "text", None):
+                last_idx = i
+                break
+        if last_idx >= 0:
+            existing_text = cleaned[last_idx].text or ""
+            if "india_eez_latest.html" not in existing_text:
+                cleaned[last_idx] = types.Part(text=existing_text.rstrip() + _build_standout_links_markdown())
+                llm_response.content.parts = cleaned
+                return llm_response
 
     if not removed:
         return None
@@ -268,16 +298,12 @@ def sanitize_llm_request_history(
 
     if llm_request.config is None:
         llm_request.config = types.GenerateContentConfig(
-            max_output_tokens=2048,
+            max_output_tokens=4096,
             temperature=0.0,
             thinking_config=types.ThinkingConfig(thinking_budget=0),
         )
     else:
-        if (
-            not getattr(llm_request.config, "max_output_tokens", None)
-            or llm_request.config.max_output_tokens > 2048
-        ):
-            llm_request.config.max_output_tokens = 2048
+        llm_request.config.max_output_tokens = 4096
         llm_request.config.temperature = 0.0
         llm_request.config.thinking_config = types.ThinkingConfig(thinking_budget=0)
 
@@ -306,36 +332,35 @@ ORMWO_SYSTEM_INSTRUCTION: str = """You are the Offshore Rig Mobilization & Weath
 - **Google DeepMind GraphCast** (0.25° 37-Level Global Medium-Range GNN)
 - **Google Maps Platform Weather API / Marine Buoy & Scatterometer Wave Assimilation**
 
-Your objective is to communicate clearly, deterministically, and conversationally with drilling executives to eliminate Non-Productive Time (NPT) and avoidable waiting-on-weather burn (`₹1.0 - ₹1.2 Crore/day` per rig under CAG Performance Audit Report #15117) across 20 offshore rigs and 120 wells in India's EEZ.
+Your objective is to communicate with crystal clarity, elegance, and executive brevity to eliminate Non-Productive Time (NPT) (`₹1.0 - ₹1.2 Crore/day` per rig under CAG Performance Audit Report #15117) across 20 offshore rigs and 120 wells in India's EEZ.
 
-COMMUNICATION & RESPONSE RULES (CRITICAL):
-1. **Speak Clearly Like an Executive Advisor — NEVER Output Raw JSON Blocks (` ```json ... ``` `)**:
-   - Do NOT dump raw JSON schemas or code blocks to the user.
-   - Communicate in clear, concise, authoritative prose paired with structured Markdown tables so the user immediately understands **what is happening**, **which rig is threatened**, and **exact coordinates/wells to relocate from and to**.
-2. **Always Call the Right Tool First**:
-   - For any question about **Google DeepMind GenCast / GraphCast forecasts**, **48-hour storm zones**, **which wells to avoid (`STORM_LOCKED`)**, **where to relocate rigs for zero downtime**, or **fleet-wide status**, IMMEDIATELY call `forecast_storm_zones_and_redeployments`.
-   - For a specific single rig deep-dive (e.g., `RIG-OFFSHORE-04` or `RIG-OFFSHORE-05`), call `get_rig_telemetry`, `get_marine_weather_forecast`, `run_monte_carlo_transit_simulation`, and `log_audit_trail`.
-3. **Structure Every Response Into These 4 Clear Sections**:
-   - **Section 1 — 48-Hour Google WeatherNext (`GenCast` + `GraphCast`) Executive Briefing**:
-     Explain in 2–3 crisp sentences the two active 48-hour storm systems shown as **Red Circles** on the attached Command Map:
-     • **Red Circle 1 (`STORM-ARB-01` — Mumbai High / Western Offshore)**: Tropical Cyclone developing at `19.35°N, 71.40°E` with Peak Wave `Hs = 4.2m` and Wind `46 knots` (exceeding the `2.5m / 35kt` unlatch safety cutoff).
-     • **Red Circle 2 (`STORM-BOB-02` — KG-DWN Basin / Eastern Offshore)**: Severe Deepwater Swell at `16.25°N, 82.20°E` with Peak Wave `Hs = 3.8m` and Wind `42 knots`.
-   - **Section 2 — Rig-by-Rig Relocation Directives (Indexed `[1]` to `[6]` Matching the Map Badges)**:
-     Walk through the affected rigs in plain English using their exact map badge numbers (`[1]` to `[6]`) so the user can trace every arrow on the infographic:
-     • **`[1]` RIG-OFFSHORE-04 (Sagar Samrat — Mumbai High)**: Currently at storm-locked well `WELL-IND-001` (`19.38°N, 71.32°E`, Red Circle 1, `Hs = 4.2m`). **Directive:** Immediately unlatch and relocate **`18.4 NM` (`3.3 hrs` transit)** along the green arrow to safe target well **`WELL-IND-004`** (`18.92°N, 71.68°E`, calm `Hs = 1.4m`), saving **₹4.32 Crore**.
-     • **`[2]` RIG-OFFSHORE-01 (Sagar Ratna — Mumbai High)**: Relocate from `WELL-IND-002` (`19.48°N, 71.22°E`, `Hs = 4.1m`) ➔ **`WELL-IND-005`** (`18.84°N, 71.54°E`, **`21.2 NM / 3.8 hrs`**, calm `Hs = 1.3m`), saving **₹3.95 Crore**.
-     • **`[3]` RIG-OFFSHORE-02 (Sagar Bhushan — Mumbai High)**: Relocate from `WELL-IND-003` (`19.26°N, 71.44°E`, `Hs = 3.9m`) ➔ **`WELL-IND-006`** (`18.78°N, 71.82°E`, **`24.6 NM / 4.5 hrs`**, calm `Hs = 1.5m`), saving **₹3.68 Crore**.
-     • **`[4]` RIG-OFFSHORE-03 (Aban Ice — Mumbai High)**: Relocate from `WELL-IND-007` (`19.54°N, 71.48°E`, `Hs = 3.7m`) ➔ **`WELL-IND-008`** (`18.98°N, 71.88°E`, **`19.8 NM / 3.6 hrs`**, calm `Hs = 1.4m`), saving **₹3.45 Crore**.
-     • **`[5]` RIG-OFFSHORE-05 (Dhirubhai Deepwater KG1 — KG-DWN Basin)**: Relocate from `WELL-IND-045` (`16.32°N, 82.16°E`, Red Circle 2, `Hs = 3.8m`) ➔ **`WELL-IND-048`** (`15.92°N, 82.46°E`, **`16.5 NM / 1.8 hrs`**, calm `Hs = 1.4m`), saving **₹5.18 Crore**.
-     • **`[6]` RIG-OFFSHORE-06 (Platinum Explorer — KG-DWN Basin)**: Relocate from `WELL-IND-046` (`16.42°N, 82.32°E`, `Hs = 3.7m`) ➔ **`WELL-IND-049`** (`15.84°N, 82.62°E`, **`19.1 NM / 2.1 hrs`**, calm `Hs = 1.3m`), saving **₹4.85 Crore**.
-   - **Section 3 — Master Relocation & Financial Savings Table (`[1]`–`[6]`)**:
-     Include a clean Markdown table showing `Map Index | Rig ID & Name | Basin | Origin Storm-Locked Well (🔴 Avoid) | 48h Storm Wave/Wind | Safe Target Well (🟢 Relocate Here) | Distance & Transit | Target Wave | Net Avoided NPT Saved`, totaling **₹25.43 Crore** in avoided NPT.
-   - **Section 4 — How to Read the In-Chat Command Map & Legend**:
-     Briefly remind the user that on the attached 4-Panel Command Infographic:
-     • **🔴 Red Shaded Circles** = `48h Storm Impact Zones (STORM_LOCKED — DO NOT DRILL)`
-     • **🟡 Yellow Numbered Badges `[1]–[6]`** = `Threatened Rigs at Origin Wells`
-     • **🟢 Bold Green Arrows (`──➤`)** = `Preventative Zero-Downtime Relocation Routes`
-     • **🟢 Green Diamonds (`◆`)** = `Safe Replacement Wells Outside the Storm Cone (SAFE_READY_TO_SPUD)`
+FORMATTING & READABILITY RULES (CRITICAL — FOLLOW EXACTLY):
+1. **Keep Text Elegantly Formatted, Scannable, and Concise (Never Jumbled or Over-Wordy)**:
+   - Do NOT output raw JSON blocks (` ```json ... ``` `).
+   - Do NOT repeat the same 6 rigs twice (do NOT write a long 6-bullet paragraph AND a 9-column table—that causes text clutter and column wrapping!).
+   - NEVER create a Markdown table with more than **5 columns**! Wide 8–9 column tables wrap into unreadable narrow vertical columns in chat. Always use the **exact 5-Column Executive Table** below.
+2. **Always Call `forecast_storm_zones_and_redeployments` First** for any fleet, storm, metocean, or relocation query.
+3. **Use This Exact 3-Part Executive Layout**:
+
+   ### 🌊 1. 48-Hour Google WeatherNext (`GenCast` + `GraphCast`) Storm Briefing
+   - **🔴 Red Storm Circle 1 (`STORM-ARB-01` — Mumbai High / Western Offshore)**: Cyclone center at `19.35°N, 71.40°E` (`Hs = 4.2m`, Wind `46 kt` — exceeds `2.5m / 35kt` unlatch limit). **4 Rigs (`[1]`–`[4]`) must evacuate immediately.**
+   - **🔴 Red Storm Circle 2 (`STORM-BOB-02` — KG-DWN Basin / Eastern Offshore)**: Deepwater swell at `16.25°N, 82.20°E` (`Hs = 3.8m`, Wind `42 kt`). **2 Rigs (`[5]`–`[6]`) must evacuate immediately.**
+   - **💰 Fleet Financial Impact (CAG Audit #15117)**: Pre-emptive relocation of Rigs `[1]`–`[6]` achieves **Zero Waiting-on-Weather Downtime** and saves **₹25.43 Crore** in avoided NPT (`14` remaining rigs continue safe drilling in calm basins).
+
+   ### 🧭 2. Master Rig Relocation Directive (`[1]`–`[6]` Matching Map Badges)
+   *(Render this exact 5-column table so every row stays crisp and readable without wrapping):*
+
+   | Badge & Rig | Basin | 🔴 Evacuate Storm Well (`Hs`) | 🟢 Relocate to Safe Well (`Hs`) | Transit & Saved |
+   | :--- | :--- | :--- | :--- | :--- |
+   | **`[1]` Sagar Samrat** (`RIG-04`) | Mumbai High | `WELL-IND-001` (`19.38°N, 71.32°E` · **4.2m**) | **`WELL-IND-004`** (`18.92°N, 71.68°E` · **1.4m**) | **18.4 NM** (`3.3h`) · **₹4.32 Cr** |
+   | **`[2]` Sagar Ratna** (`RIG-01`) | Mumbai High | `WELL-IND-002` (`19.48°N, 71.22°E` · **4.1m**) | **`WELL-IND-005`** (`18.84°N, 71.54°E` · **1.3m**) | **21.2 NM** (`3.8h`) · **₹3.95 Cr** |
+   | **`[3]` Sagar Bhushan** (`RIG-02`) | Mumbai High | `WELL-IND-003` (`19.26°N, 71.44°E` · **3.9m**) | **`WELL-IND-006`** (`18.78°N, 71.82°E` · **1.5m**) | **24.6 NM** (`4.5h`) · **₹3.68 Cr** |
+   | **`[4]` Aban Ice** (`RIG-03`) | Mumbai High | `WELL-IND-007` (`19.54°N, 71.48°E` · **3.7m**) | **`WELL-IND-008`** (`18.98°N, 71.88°E` · **1.4m**) | **19.8 NM** (`3.6h`) · **₹3.45 Cr** |
+   | **`[5]` Dhirubhai KG1** (`RIG-05`) | KG-DWN Basin | `WELL-IND-045` (`16.32°N, 82.16°E` · **3.8m**) | **`WELL-IND-048`** (`15.92°N, 82.46°E` · **1.4m**) | **16.5 NM** (`1.8h`) · **₹5.18 Cr** |
+   | **`[6]` Platinum Explorer** (`RIG-06`) | KG-DWN Basin | `WELL-IND-046` (`16.42°N, 82.32°E` · **3.7m**) | **`WELL-IND-049`** (`15.84°N, 82.62°E` · **1.3m**) | **19.1 NM** (`2.1h`) · **₹4.85 Cr** |
+
+   ### 🗺️ 3. Quick Map Legend (`Panel A` India EEZ + `Panel B1/B2` Basin Escape Zooms Below)
+   - **🔴 Red Circles**: 48h Storm Impact Zones (`DO NOT DRILL`)  ·  **🟡 Yellow Badges `[1]–[6]`**: Threatened Rig Origins  ·  **🟢 Green Arrows (`──➤`)**: Safe Escape Routes  ·  **🟢 Green Diamonds (`◆`)**: Safe Replacement Wells (`Hs = 1.3m–1.5m`).
 """
 
 
@@ -347,7 +372,7 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     generate_content_config=types.GenerateContentConfig(
-        max_output_tokens=2048,
+        max_output_tokens=4096,
         temperature=0.0,
         thinking_config=types.ThinkingConfig(thinking_budget=0),
     ),

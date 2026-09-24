@@ -22,15 +22,16 @@ def test_build_rig_fleet_map_spec():
 
     assert spec["$schema"] == "https://vega.github.io/schema/vega-lite/v5.json"
     assert "vconcat" in spec
-    assert len(spec["vconcat"]) == 2
+    assert len(spec["vconcat"]) == 3
 
     india_map_panel = spec["vconcat"][0]
     assert "layer" in india_map_panel
-    # 6 layers: India Coastline + 48h Storm Zones + Callout Labels + 120 Wells + 20 Rigs + Waypoint Trajectory
-    assert len(india_map_panel["layer"]) >= 5
-    # Verify 120 wells and 20 rigs in layers
-    assert len(india_map_panel["layer"][2]["data"]["values"]) == 120
-    assert len(india_map_panel["layer"][3]["data"]["values"]) == 20
+    assert len(india_map_panel["layer"]) >= 8
+    # Verify 120 wells in Layer 5 (index 4) and 6 relocation badges in Layer 7 (index 6)
+    assert len(india_map_panel["layer"][4]["data"]["values"]) == 120
+    assert len(india_map_panel["layer"][6]["data"]["values"]) == 6
+    assert "hconcat" in spec["vconcat"][1]
+    assert len(spec["vconcat"][1]["hconcat"]) == 2
 
 
 def test_build_rig_telemetry_chart_spec():
