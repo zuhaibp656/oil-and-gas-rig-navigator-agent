@@ -37,22 +37,28 @@ _DEFAULT_ADC_PATH = Path.home() / ".config" / "gcloud" / "application_default_cr
 
 
 def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
-    """Create refreshed google.oauth2.credentials.Credentials for Argolis admin."""
-    for adc_path in (_ARGOLIS_ADC_PATH, _DEFAULT_ADC_PATH):
-        if adc_path.exists():
-            try:
-                creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
-                    str(adc_path),
-                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                )
-                creds.refresh(Request())
-                if creds.token:
-                    return creds
-            except Exception:
-                pass
+    """Create refreshed google.oauth2.credentials.Credentials strictly for Argolis admin@zuhaibp.altostrat.com."""
     gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
     if not os.path.exists(gcloud_bin):
         gcloud_bin = "gcloud"
+    try:
+        out = subprocess.check_output(
+            [gcloud_bin, "auth", "print-access-token", "--account=admin@zuhaibp.altostrat.com"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        if out.strip():
+            return google.oauth2.credentials.Credentials(out.strip())
+    except Exception:
+        pass
+    if _ARGOLIS_ADC_PATH.exists():
+        creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
+            str(_ARGOLIS_ADC_PATH),
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+        creds.refresh(Request())
+        if creds.token:
+            return creds
     out = subprocess.check_output(
         [gcloud_bin, "auth", "print-access-token"],
         text=True,
