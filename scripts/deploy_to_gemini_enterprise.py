@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""Automated Vertex AI Reasoning Engine (Agent Garden) & Gemini Enterprise Deployer.
+"""Automated Vertex AI Agent Engine (with ADK Playground) & Gemini Enterprise Deployer.
 
-1. Uses `gcloud auth print-access-token` OAuth2 credentials so deployment works seamlessly
-   from both CloudTop and Argolis Cloud Shell.
-2. Ensures GCS staging bucket exists (`gs://<project>-ormwo-agent-staging`).
-3. Deploys (or updates in-place) the ORMWO ADK Agent on Vertex AI Agent Engine (Reasoning Engine).
-4. Automatically discovers all Gemini Enterprise (Discovery Engine / AgentSpace) apps in the
-   Argolis project and registers the deployed agent so it appears directly in Gemini Enterprise chat.
+1. Configures `GOOGLE_GENAI_USE_VERTEXAI=TRUE` and `ORMWO_MODEL=gemini-2.5-flash` BEFORE importing
+   `root_agent` and `ORMWOAdkApp`, ensuring cloudpickle serializes the Vertex AI runtime configuration.
+2. Ensures GCS staging bucket exists (`gs://<project>-agent-staging`).
+3. Deploys (or updates in-place) `ORMWOAdkApp` via `vertexai.agent_engines.create(...)` with
+   `google-cloud-aiplatform[agent_engines,adk]>=1.160.0` so the deployed agent has full
+   interactive **Playground** access in Google Cloud Console (`agent_framework="google-adk"`).
+4. Automatically discovers Gemini Enterprise (Discovery Engine / AgentSpace) apps in the
+   Argolis project and registers the deployed Reasoning Engine into Gemini Enterprise chat.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import urllib.error
 import urllib.request
 
+import google.auth
 import google.oauth2.credentials
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -28,7 +32,14 @@ if str(ROOT_DIR) not in sys.path:
 
 def get_gcloud_access_token() -> str:
     """Retrieve active OAuth2 token from gcloud."""
-    out = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True)
+    gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
+    if not os.path.exists(gcloud_bin):
+        gcloud_bin = "gcloud"
+    out = subprocess.check_output(
+        [gcloud_bin, "auth", "print-access-token"],
+        text=True,
+        stderr=subprocess.DEVNULL,
+    )
     return out.strip()
 
 
@@ -59,18 +70,30 @@ def ensure_staging_bucket(project_id: str, region: str, bucket_name: str) -> str
 
 
 def deploy_to_vertex_agent_engine(
-    project_id: str,
-    region: str,
-    staging_bucket: str,
+    project_id: str = "zuhaibp-ai",
+    region: str = "us-central1",
+    staging_bucket: str = "",
     service_account: str | None = None,
 ) -> str:
-    """Deploy or update the ORMWO Root Agent on Vertex AI Reasoning Engine."""
+    """Deploy or update the ORMWO Root Agent on Vertex AI Agent Engine with ADK Playground enabled."""
+    if region == "global":
+        region = "us-central1"
+
+    # Force Vertex AI mode before importing the agent module so cloudpickle captures Vertex AI config
+    os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "TRUE"
+    os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+    os.environ["GOOGLE_CLOUD_LOCATION"] = region
+    os.environ["ORMWO_MODEL"] = "gemini-2.5-flash"
+
     import vertexai
+    from vertexai import agent_engines
     from vertexai.preview import reasoning_engines
-    from app.integration.agent import root_agent
+    from app.integration.agent import ORMWOAdkApp, root_agent
 
     creds = get_gcloud_credentials()
-    staging_uri = ensure_staging_bucket(project_id, region, staging_bucket)
+    bucket_name = staging_bucket or f"{project_id}-agent-staging"
+    staging_uri = ensure_staging_bucket(project_id, region, bucket_name)
+
     vertexai.init(
         project=project_id,
         location=region,
@@ -78,26 +101,27 @@ def deploy_to_vertex_agent_engine(
         credentials=creds,
     )
 
-    adk_app = reasoning_engines.AdkApp(
+    adk_app = ORMWOAdkApp(
         agent=root_agent,
         enable_tracing=True,
     )
 
     requirements = [
-        "google-adk[gcp,otel-gcp]>=2.6.0,<3.0.0",
-        "google-cloud-aiplatform[agent-engines]>=1.156.0",
+        "google-cloud-aiplatform[agent_engines,adk]>=1.160.0",
+        "google-adk>=2.6.0,<3.0.0",
+        "google-genai>=1.0.0",
         "google-cloud-bigquery>=3.25.0,<4.0.0",
         "google-cloud-storage>=2.18.0,<4.0.0",
         "a2a-sdk[http-server]>=1.0,<2",
         "numpy>=1.26,<3.0",
-        "scipy>=1.17.1",
-        "pillow>=12.3.0",
+        "scipy>=1.14.0",
+        "pillow>=10.0.0",
     ]
     extra_packages = ["app"]
     display_name = "ORMWO - Offshore Rig Mobilization & Weather Optimizer"
     description = (
         "Offshore Rig Mobilization & Weather Optimizer (ORMWO) — 48h Metocean Risk, "
-        "Monte Carlo Well Redeployment & Interactive India EEZ Map for Gemini Enterprise"
+        "Monte Carlo Well Redeployment & Interactive India EEZ Map (ADK Playground & Gemini Enterprise)"
     )
 
     state_file = ROOT_DIR / ".reasoning_engine_id"
@@ -116,10 +140,10 @@ def deploy_to_vertex_agent_engine(
 
     if existing_resource_name:
         try:
-            print(f"[UPDATING] Existing Vertex AI Reasoning Engine: {existing_resource_name}")
-            existing_eng = reasoning_engines.ReasoningEngine(existing_resource_name)
-            updated = existing_eng.update(
-                reasoning_engine=adk_app,
+            print(f"[UPDATING] Existing Vertex AI Agent Engine in-place: {existing_resource_name}")
+            remote_engine = agent_engines.get(existing_resource_name)
+            updated = remote_engine.update(
+                agent_engine=adk_app,
                 requirements=requirements,
                 extra_packages=extra_packages,
                 display_name=display_name,
@@ -127,23 +151,32 @@ def deploy_to_vertex_agent_engine(
             )
             res_name = updated.resource_name
             state_file.write_text(res_name, encoding="utf-8")
-            print(f"[SUCCESS] Updated Vertex AI Reasoning Engine: {res_name}")
+            _print_deployment_links(project_id, region, res_name)
             return res_name
         except Exception as exc:
-            print(f"[INFO] In-place update skipped ({exc}); creating fresh Reasoning Engine...")
+            print(f"[INFO] In-place update skipped ({exc}); creating new Agent Engine instance...")
 
-    print(f"[DEPLOYING] Creating Vertex AI Reasoning Engine in {project_id} ({region})...")
-    create_kwargs = {
-        "reasoning_engine": adk_app,
-        "requirements": requirements,
-        "extra_packages": extra_packages,
-        "display_name": display_name,
-        "description": description,
-    }
-    if service_account:
-        create_kwargs["service_account"] = service_account
+    print(f"[DEPLOYING] Creating Vertex AI Agent Engine (ADK Playground Enabled) in {project_id} ({region})...")
+    try:
+        remote_engine = agent_engines.create(
+            agent_engine=adk_app,
+            requirements=requirements,
+            extra_packages=extra_packages,
+            display_name=display_name,
+            description=description,
+        )
+    except Exception:
+        create_kwargs = {
+            "reasoning_engine": adk_app,
+            "requirements": requirements,
+            "extra_packages": extra_packages,
+            "display_name": display_name,
+            "description": description,
+        }
+        if service_account:
+            create_kwargs["service_account"] = service_account
+        remote_engine = reasoning_engines.ReasoningEngine.create(**create_kwargs)
 
-    remote_engine = reasoning_engines.ReasoningEngine.create(**create_kwargs)
     res_name = remote_engine.resource_name
     state_file.write_text(res_name, encoding="utf-8")
 
@@ -151,14 +184,32 @@ def deploy_to_vertex_agent_engine(
     meta = {
         "deployment_target": "agent_runtime",
         "is_a2a": True,
+        "agent_framework": "google-adk",
+        "playground_enabled": True,
         "agent_directory": "app",
         "region": region,
         "project_id": project_id,
         "reasoning_engine_resource_name": res_name,
     }
     meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-    print(f"[SUCCESS] Deployed Vertex AI Reasoning Engine: {res_name}")
+    _print_deployment_links(project_id, region, res_name)
     return res_name
+
+
+def _print_deployment_links(project_id: str, region: str, res_name: str) -> None:
+    engine_id = res_name.rsplit("/", 1)[-1]
+    print("\n" + "=" * 84)
+    print(f"[SUCCESS] Deployed ORMWO Agent to Vertex AI Agent Engine!")
+    print(f"  • Resource Name   : {res_name}")
+    print(
+        f"  • ADK Playground  : https://console.cloud.google.com/vertex-ai/agents/agent-engines/"
+        f"locations/{region}/agent-engines/{engine_id}/playground?project={project_id}"
+    )
+    print(
+        f"  • Agent Registry  : https://console.cloud.google.com/vertex-ai/agents/agent-engines"
+        f"?project={project_id}"
+    )
+    print("=" * 84 + "\n")
 
 
 def register_with_gemini_enterprise(
@@ -200,7 +251,7 @@ def register_with_gemini_enterprise(
     if not app_ids:
         print(
             "[INFO] No existing Gemini Enterprise engine auto-discovered via v1alpha list. "
-            "You can bind the Reasoning Engine in Gemini Enterprise UI or pass --gemini-app-id."
+            f"Use Resource Name '{reasoning_engine_resource_name}' when adding the ADK agent in Gemini Enterprise UI."
         )
         return
 
@@ -251,15 +302,15 @@ def register_with_gemini_enterprise(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Deploy ORMWO Agent to Vertex AI & Gemini Enterprise")
-    parser.add_argument("--project", required=True, help="GCP Project ID (Argolis)")
-    parser.add_argument("--region", default="asia-south1", help="Vertex AI Region (default: asia-south1)")
-    parser.add_argument("--staging-bucket", default="", help="GCS Staging Bucket (auto-created if omitted)")
+    parser = argparse.ArgumentParser(description="Deploy ORMWO Agent to Vertex AI Agent Engine & Gemini Enterprise")
+    parser.add_argument("--project", default="zuhaibp-ai", help="GCP Project ID (Argolis, default: zuhaibp-ai)")
+    parser.add_argument("--region", default="us-central1", help="Vertex AI Region (default: us-central1 for Playground)")
+    parser.add_argument("--staging-bucket", default="", help="GCS Staging Bucket (default: <project>-agent-staging)")
     parser.add_argument("--service-account", default="", help="Custom Service Account email")
     parser.add_argument("--gemini-app-id", default="", help="Optional Gemini Enterprise Engine ID")
     args = parser.parse_args()
 
-    bucket = args.staging_bucket or f"{args.project}-ormwo-agent-staging"
+    bucket = args.staging_bucket or f"{args.project}-agent-staging"
     re_name = deploy_to_vertex_agent_engine(
         project_id=args.project,
         region=args.region,

@@ -302,3 +302,32 @@ app = App(
     root_agent=root_agent,
     name="rig_navigator_agent",
 )
+
+try:
+    from vertexai.preview.reasoning_engines import AdkApp
+
+    class ORMWOAdkApp(AdkApp):
+        """Production ADK App wrapper for Vertex AI Agent Engine with Playground & Streaming support."""
+
+        def __init__(self, agent: Agent = root_agent, **kwargs: Any) -> None:
+            super().__init__(agent=agent, **kwargs)
+
+        def query(self, *args: Any, **kwargs: Any) -> Any:
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "TRUE"
+            os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "zuhaibp-ai")
+            os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
+            return super().query(*args, **kwargs)
+
+        def stream_query(self, *args: Any, **kwargs: Any) -> Any:
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "TRUE"
+            os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "zuhaibp-ai")
+            os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
+            yield from super().stream_query(*args, **kwargs)
+
+    def get_app() -> ORMWOAdkApp:
+        """Factory function for initializing ORMWOAdkApp with tracing enabled for Playground."""
+        return ORMWOAdkApp(agent=root_agent, enable_tracing=True)
+
+except ImportError:
+    pass
+
