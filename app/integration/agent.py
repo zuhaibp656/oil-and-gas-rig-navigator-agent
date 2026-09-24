@@ -102,6 +102,7 @@ try:
         A2A_DATA_PART_OPEN_TAG,
     )
     from app.render.india_map_png import render_india_eez_map_png
+    from app.render.interactive_html_map import publish_interactive_html_map
 except ImportError:
     from contracts import FleetSummary
     from integration.tools import (
@@ -120,6 +121,7 @@ except ImportError:
         A2A_DATA_PART_OPEN_TAG,
     )
     from render.india_map_png import render_india_eez_map_png
+    from render.interactive_html_map import publish_interactive_html_map
 
 logger = logging.getLogger(__name__)
 
@@ -162,14 +164,30 @@ def emit_a2ui_surface(
     force_a2ui = os.environ.get("ORMWO_EMIT_A2UI_DATAPART", "FALSE").upper() == "TRUE"
 
     parts: list[types.Part] = []
-    try:
-        png_bytes = render_india_eez_map_png(pending_fleet)
-        parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
-    except Exception as exc:
-        logger.warning("render_india_eez_map_png fallback: %s", exc)
-
     if use_vertex or force_a2ui:
+        # In Gemini Enterprise / Vertex AI Agent Engine, emit pure A2UI v0.9 parts
+        # so Gemini Enterprise mounts the interactive VegaChart (scroll-zoom, drag-pan, hover tooltips)
+        # instead of falling back to a static PNG image.
         parts.extend(build_rig_fleet_surface(pending_fleet, surface_id))
+    else:
+        # In local `adk web` (which does not parse <a2a_datapart_json>), publish the
+        # interactive Leaflet.js + Vega-Lite HTML5 map and attach a clickable link + inline preview.
+        _, cloud_html_url = publish_interactive_html_map(pending_fleet, surface_id)
+        parts.append(
+            types.Part(
+                text=(
+                    "\n\n🌐 **Interactive India EEZ Map (Zoom, Pan & Hover Over 20 Rigs + 120 Wells)**:\n"
+                    "- **Local Interactive Leaflet.js + Vega-Lite Map**: "
+                    "[Open http://127.0.0.1:8088/india_eez_interactive_map.html](http://127.0.0.1:8088/india_eez_interactive_map.html)\n"
+                    f"- **Cloud Console Interactive Map**: [Open in Google Cloud Storage]({cloud_html_url})"
+                )
+            )
+        )
+        try:
+            png_bytes = render_india_eez_map_png(pending_fleet)
+            parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
+        except Exception as exc:
+            logger.warning("render_india_eez_map_png fallback: %s", exc)
 
     if not parts:
         return None

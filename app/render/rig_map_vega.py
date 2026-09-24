@@ -1,8 +1,9 @@
-"""Vega-Lite v5 specification generator for Offshore Rig Mobilization & Weather Optimizer (ORMWO).
+"""Vega-Lite v5 interactive specification generator for Offshore Rig Mobilization & Weather Optimizer (ORMWO).
 
 Builds an interactive 5-Layer Cartographic Map of India & Surrounding EEZ Waters
-(Coastline Outline + 48h Storm Zones + 120 Wells + 20 Rigs + Monte Carlo Waypoint Trajectories)
-paired with a 48-Hour Metocean Forecast Confidence Chart for Gemini Enterprise A2UI v0.9.
+with full mouse scroll-wheel zoom, click-drag pan (`"bind": "scales"`), and rich hover tooltips
+for all 20 Offshore Rigs, 120 Candidate/Active Wells, 48h Cyclone Cones, and Monte Carlo Waypoints,
+paired with an interactive 48-Hour Metocean Forecast Chart for Gemini Enterprise A2UI v0.9.
 """
 
 from __future__ import annotations
@@ -32,14 +33,14 @@ SPEC_POINTER: str = f"/{SPEC_KEY}"
 
 
 def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
-    """Build a 5-layer Map of India & EEZ Waters + 48h Weather Forecast Vega-Lite v5 spec."""
+    """Build an interactive zoomable/hoverable 5-layer Map of India & EEZ + 48h Weather Forecast Vega-Lite v5 spec."""
     # 1. India Coastline Polygon Points
     coastline_values = get_india_coastline_layer_values()
 
     # 2. Active 48h Storm Zones
     storm_zones = summary.active_storm_zones or ACTIVE_48H_STORM_ZONES
 
-    # 3. 120 Candidate & Active Wells (highlight recommended target wells)
+    # 3. 120 Candidate & Active Wells (with rich hover metadata)
     recommended_well_ids = {
         sim.destination_well_id for sim in (summary.transit_simulations or [])
     }
@@ -47,6 +48,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
     well_points: list[dict[str, Any]] = []
     for w in source_wells:
         well_state = "RECOMMENDED_TARGET" if w.well_id in recommended_well_ids else w.status.value
+        compat_rigs = ", ".join(rt.ormwo_label for rt in getattr(w, "compatible_rig_types", [])) or "ALL_OFFSHORE"
         well_points.append({
             "well_id": w.well_id,
             "well_name": w.well_name,
@@ -54,14 +56,17 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "latitude": w.latitude,
             "longitude": w.longitude,
             "water_depth_m": w.water_depth_m,
+            "target_depth_m": getattr(w, "target_depth_m", 3200.0),
             "well_state": well_state,
             "peak_48h_hs_m": w.peak_48h_hs_m,
             "peak_48h_wind_kts": w.peak_48h_wind_kts,
+            "compatible_rigs": compat_rigs,
         })
 
-    # 4. 20 Offshore Rigs
+    # 4. 20 Offshore Rigs (with full drilling telemetry for interactive mouse hover)
     rig_points: list[dict[str, Any]] = []
     for rig in summary.rigs:
+        t = rig.telemetry
         rig_points.append({
             "rig_id": rig.rig_id,
             "rig_name": rig.rig_name,
@@ -71,25 +76,41 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "latitude": rig.location.latitude,
             "longitude": rig.location.longitude,
             "basin": rig.location.basin_name,
+            "block_id": rig.location.block_id,
             "well_name": rig.current_well_name,
             "water_depth": rig.location.water_depth_m,
-            "current_depth": rig.telemetry.measured_depth_m if rig.telemetry else 0.0,
+            "current_depth": t.measured_depth_m if t else 0.0,
+            "target_depth": rig.target_depth_m,
+            "rop_m_hr": t.rate_of_penetration_m_hr if t else 0.0,
+            "rotary_rpm": t.rotary_rpm if t else 0.0,
+            "torque_kft_lbs": t.torque_kft_lbs if t else 0.0,
+            "spp_psi": t.standpipe_pressure_psi if t else 0.0,
             "daily_cost_cr": round(rig.daily_operating_cost_inr / 10000000.0, 2),
+            "is_selected": "SELECTED_FOCUS" if rig.rig_id == summary.selected_rig_id else "FLEET_UNIT",
         })
 
     # 5. Monte Carlo Evacuation / Redeployment Waypoint Trajectories
     trajectory_points: list[dict[str, Any]] = []
     for sim in (summary.transit_simulations or []):
+        savings_cr = round(sim.avoided_npt_savings_inr / 10000000.0, 2)
+        npt_cr = round(sim.estimated_npt_cost_inr / 10000000.0, 2)
         for step_idx, wp in enumerate(sim.optimal_routing_waypoints):
-            if len(wp) >= 2:
-                trajectory_points.append({
-                    "rig_id": sim.rig_id,
-                    "step": step_idx,
-                    "latitude": wp[0],
-                    "longitude": wp[1],
-                    "destination_well": sim.destination_well_id,
-                    "eta_hours": sim.expected_transit_hours,
-                })
+            if isinstance(wp, dict):
+                w_lat, w_lon = float(wp["lat"]), float(wp["lon"])
+            else:
+                w_lat, w_lon = float(wp[0]), float(wp[1])
+            trajectory_points.append({
+                "rig_id": sim.rig_id,
+                "step": step_idx,
+                "waypoint_label": f"WP-{step_idx}" if step_idx < len(sim.optimal_routing_waypoints) - 1 else f"TARGET ({sim.destination_well_id})",
+                "latitude": w_lat,
+                "longitude": w_lon,
+                "destination_well": sim.destination_well_id,
+                "eta_hours": sim.expected_transit_hours,
+                "avoided_npt_cr": savings_cr,
+                "transit_burn_cr": npt_cr,
+                "departure_utc": sim.recommended_departure_time,
+            })
 
     # 6. 48-Hour Weather Forecast Series (for Bottom Synchronized Panel)
     weather_series = summary.weather_series
@@ -107,34 +128,44 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "hs_p05": pt.hs_p05_m,
             "hs_p95": pt.hs_p95_m,
             "wind_kts": pt.wind_speed_knots,
+            "swell_sec": pt.swell_period_sec,
             "sea_state": pt.sea_state,
             "threat_level": pt.cyclone_threat_level,
+            "safe_status": "SAFE (<2.5m)" if pt.safe_for_operations else "CRITICAL BREACH (>2.5m)",
             "threshold_m": 2.5,
         })
 
-    # Build Map Layers
+    # Build Interactive Map Layers (with scroll-wheel zoom + drag pan + hover highlight)
     map_layers: list[dict[str, Any]] = [
-        # Layer 1: India Coastline & Peninsula Outline
+        # Layer 1: India Coastline & Peninsula Outline (with pan/zoom scale binding)
         {
+            "params": [
+                {
+                    "name": "india_eez_zoom_pan",
+                    "select": "interval",
+                    "bind": "scales",
+                }
+            ],
             "data": {"values": coastline_values},
             "mark": {
                 "type": "line",
                 "fill": "#1E293B",
-                "fillOpacity": 0.22,
-                "stroke": "#475569",
-                "strokeWidth": 1.6,
+                "fillOpacity": 0.25,
+                "stroke": "#38BDF8",
+                "strokeWidth": 1.8,
+                "tooltip": True,
             },
             "encoding": {
                 "x": {
                     "field": "longitude",
                     "type": "quantitative",
-                    "scale": {"domain": [67.0, 89.5]},
-                    "axis": {"title": "Longitude (°E — Arabian Sea to Bay of Bengal)", "grid": True},
+                    "scale": {"domain": [66.5, 89.5]},
+                    "axis": {"title": "Longitude (°E — Scroll to Zoom / Drag to Pan across India EEZ)", "grid": True},
                 },
                 "y": {
                     "field": "latitude",
                     "type": "quantitative",
-                    "scale": {"domain": [6.0, 24.5]},
+                    "scale": {"domain": [5.5, 24.5]},
                     "axis": {"title": "Latitude (°N — Indian EEZ)", "grid": True},
                 },
                 "detail": {"field": "group", "type": "nominal"},
@@ -146,32 +177,53 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "data": {"values": storm_zones},
             "mark": {
                 "type": "circle",
-                "size": 3200,
+                "size": 3600,
                 "color": "#EF4444",
-                "opacity": 0.18,
+                "opacity": 0.20,
                 "stroke": "#DC2626",
-                "strokeWidth": 1.5,
+                "strokeWidth": 1.8,
                 "strokeDash": [4, 3],
             },
             "encoding": {
                 "x": {"field": "longitude", "type": "quantitative"},
                 "y": {"field": "latitude", "type": "quantitative"},
                 "tooltip": [
+                    {"field": "storm_id", "type": "nominal", "title": "Storm ID"},
                     {"field": "storm_name", "type": "nominal", "title": "48h Weather Alert"},
                     {"field": "basin", "type": "nominal", "title": "Affected Basin"},
                     {"field": "peak_hs_m", "type": "quantitative", "title": "Peak Wave Hs (m)"},
                     {"field": "peak_wind_kts", "type": "quantitative", "title": "Peak Wind (kts)"},
-                    {"field": "threat_level", "type": "nominal", "title": "Cyclone Threat"},
+                    {"field": "swell_period_s", "type": "quantitative", "title": "Swell Period (s)"},
+                    {"field": "threat_level", "type": "nominal", "title": "Cyclone Threat Level"},
                 ],
             },
         },
-        # Layer 3: 120 Candidate & Active Offshore Well Locations
+        # Layer 3: 120 Candidate & Active Offshore Well Locations (hoverable pinpoint circles)
         {
+            "params": [
+                {
+                    "name": "well_hover",
+                    "select": {"type": "point", "on": "mouseover", "clear": "mouseout"},
+                },
+                {
+                    "name": "well_legend_filter",
+                    "select": {"type": "point", "fields": ["well_state"]},
+                    "bind": "legend",
+                },
+            ],
             "data": {"values": well_points},
-            "mark": {"type": "circle", "size": 36, "opacity": 0.82},
+            "mark": {"type": "circle", "stroke": "#0F172A", "strokeWidth": 0.8},
             "encoding": {
                 "x": {"field": "longitude", "type": "quantitative"},
                 "y": {"field": "latitude", "type": "quantitative"},
+                "size": {
+                    "condition": {"param": "well_hover", "value": 160, "empty": False},
+                    "value": 48,
+                },
+                "opacity": {
+                    "condition": {"param": "well_legend_filter", "value": 0.92},
+                    "value": 0.2,
+                },
                 "color": {
                     "field": "well_state",
                     "type": "nominal",
@@ -184,42 +236,65 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         ],
                         "range": ["#10B981", "#EF4444", "#38BDF8", "#FACC15"],
                     },
-                    "legend": {"title": "Well & Rig Layer", "orient": "bottom"},
+                    "legend": {"title": "120 Wells Status (Click Legend to Filter)", "orient": "bottom"},
                 },
                 "tooltip": [
                     {"field": "well_id", "type": "nominal", "title": "Well ID"},
+                    {"field": "well_name", "type": "nominal", "title": "Well Name"},
                     {"field": "basin", "type": "nominal", "title": "Basin"},
-                    {"field": "well_state", "type": "nominal", "title": "48h Status"},
-                    {"field": "latitude", "type": "quantitative", "title": "Lat (°N)", "format": ".3f"},
-                    {"field": "longitude", "type": "quantitative", "title": "Lon (°E)", "format": ".3f"},
-                    {"field": "water_depth_m", "type": "quantitative", "title": "Water Depth (m)"},
-                    {"field": "peak_48h_hs_m", "type": "quantitative", "title": "48h Peak Hs (m)"},
+                    {"field": "well_state", "type": "nominal", "title": "48h Readiness"},
+                    {"field": "latitude", "type": "quantitative", "title": "Latitude (°N)", "format": ".4f"},
+                    {"field": "longitude", "type": "quantitative", "title": "Longitude (°E)", "format": ".4f"},
+                    {"field": "water_depth_m", "type": "quantitative", "title": "Water Depth (m)", "format": ",.1f"},
+                    {"field": "target_depth_m", "type": "quantitative", "title": "Target Depth (m)", "format": ",.0f"},
+                    {"field": "peak_48h_hs_m", "type": "quantitative", "title": "48h Peak Wave Hs (m)"},
+                    {"field": "peak_48h_wind_kts", "type": "quantitative", "title": "48h Peak Wind (kts)"},
+                    {"field": "compatible_rigs", "type": "nominal", "title": "Compatible Hulls"},
                 ],
             },
         },
-        # Layer 4: 20 Active Offshore Rigs
+        # Layer 4: 20 Active Offshore Rigs (hoverable triangles with live drilling telemetry)
         {
+            "params": [
+                {
+                    "name": "rig_hover",
+                    "select": {"type": "point", "on": "mouseover", "clear": "mouseout"},
+                }
+            ],
             "data": {"values": rig_points},
             "mark": {
                 "type": "point",
                 "shape": "triangle-up",
                 "filled": True,
-                "size": 145,
-                "color": "#0F172A",
-                "stroke": "#FACC15",
-                "strokeWidth": 1.6,
+                "color": "#FACC15",
+                "stroke": "#0F172A",
+                "strokeWidth": 1.8,
             },
             "encoding": {
                 "x": {"field": "longitude", "type": "quantitative"},
                 "y": {"field": "latitude", "type": "quantitative"},
+                "size": {
+                    "condition": {"param": "rig_hover", "value": 340, "empty": False},
+                    "value": 175,
+                },
                 "tooltip": [
                     {"field": "rig_id", "type": "nominal", "title": "Rig ID"},
                     {"field": "rig_name", "type": "nominal", "title": "Rig Name"},
+                    {"field": "operator", "type": "nominal", "title": "Operator"},
                     {"field": "rig_type", "type": "nominal", "title": "Hull Type"},
-                    {"field": "status", "type": "nominal", "title": "Status"},
+                    {"field": "status", "type": "nominal", "title": "Operational Status"},
                     {"field": "well_name", "type": "nominal", "title": "Current Well"},
                     {"field": "basin", "type": "nominal", "title": "Basin"},
-                    {"field": "daily_cost_cr", "type": "quantitative", "title": "Burn Rate (₹ Cr/day)"},
+                    {"field": "block_id", "type": "nominal", "title": "Block ID"},
+                    {"field": "latitude", "type": "quantitative", "title": "Latitude (°N)", "format": ".4f"},
+                    {"field": "longitude", "type": "quantitative", "title": "Longitude (°E)", "format": ".4f"},
+                    {"field": "water_depth", "type": "quantitative", "title": "Water Depth (m)", "format": ",.1f"},
+                    {"field": "current_depth", "type": "quantitative", "title": "Measured Depth (m)", "format": ",.0f"},
+                    {"field": "rop_m_hr", "type": "quantitative", "title": "ROP (m/hr)", "format": ".1f"},
+                    {"field": "rotary_rpm", "type": "quantitative", "title": "Rotary RPM", "format": ".0f"},
+                    {"field": "torque_kft_lbs", "type": "quantitative", "title": "Torque (kft-lbs)", "format": ".1f"},
+                    {"field": "spp_psi", "type": "quantitative", "title": "Standpipe Pressure (psi)", "format": ",.0f"},
+                    {"field": "daily_cost_cr", "type": "quantitative", "title": "Burn Rate (₹ Cr/day)", "format": ".2f"},
                 ],
             },
         },
@@ -230,10 +305,10 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
             "data": {"values": trajectory_points},
             "mark": {
                 "type": "line",
-                "color": "#F59E0B",
-                "strokeWidth": 2.6,
+                "color": "#22C55E",
+                "strokeWidth": 3.0,
                 "strokeDash": [5, 2],
-                "point": {"filled": True, "color": "#FACC15", "size": 55},
+                "point": {"filled": True, "color": "#4ADE80", "stroke": "#FFFFFF", "strokeWidth": 1.5, "size": 75},
             },
             "encoding": {
                 "x": {"field": "longitude", "type": "quantitative"},
@@ -241,20 +316,33 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 "detail": {"field": "rig_id", "type": "nominal"},
                 "order": {"field": "step", "type": "quantitative"},
                 "tooltip": [
-                    {"field": "rig_id", "type": "nominal", "title": "Evacuating Rig"},
+                    {"field": "waypoint_label", "type": "nominal", "title": "Routing Waypoint"},
+                    {"field": "rig_id", "type": "nominal", "title": "Mobilizing Rig"},
                     {"field": "destination_well", "type": "nominal", "title": "Target Safe Well"},
-                    {"field": "eta_hours", "type": "quantitative", "title": "Expected Transit (hrs)"},
+                    {"field": "latitude", "type": "quantitative", "title": "Waypoint Lat (°N)", "format": ".4f"},
+                    {"field": "longitude", "type": "quantitative", "title": "Waypoint Lon (°E)", "format": ".4f"},
+                    {"field": "departure_utc", "type": "nominal", "title": "Recommended Departure"},
+                    {"field": "eta_hours", "type": "quantitative", "title": "Expected Transit (hrs)", "format": ".1f"},
+                    {"field": "avoided_npt_cr", "type": "quantitative", "title": "Avoided NPT Savings (₹ Cr)", "format": ".2f"},
+                    {"field": "transit_burn_cr", "type": "quantitative", "title": "Transit Cost (₹ Cr)", "format": ".2f"},
                 ],
             },
         })
 
     weather_panel = {
-        "width": 480,
-        "height": 125,
-        "title": "48-Hour Metocean Wave Forecast (Hs m) with 95% CI & 2.5m Critical Threshold",
+        "width": 520,
+        "height": 140,
+        "title": "48-Hour Metocean Wave Forecast (Hs m) — Hover Points for Wind, Swell & Sea State",
         "data": {"values": weather_rows},
         "layer": [
             {
+                "params": [
+                    {
+                        "name": "weather_zoom_pan",
+                        "select": "interval",
+                        "bind": "scales",
+                    }
+                ],
                 "mark": {"type": "area", "color": "#38BDF8", "opacity": 0.22},
                 "encoding": {
                     "x": {"field": "hour", "type": "quantitative", "axis": {"title": "Forecast Horizon (Hours Ahead: T+0h to T+48h)"}},
@@ -263,21 +351,30 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 },
             },
             {
-                "mark": {"type": "line", "color": "#0284C7", "strokeWidth": 2.4, "point": True},
+                "params": [
+                    {
+                        "name": "forecast_hover",
+                        "select": {"type": "point", "on": "mouseover", "clear": "mouseout"},
+                    }
+                ],
+                "mark": {"type": "line", "color": "#0284C7", "strokeWidth": 2.6, "point": {"filled": True, "size": 65}},
                 "encoding": {
                     "x": {"field": "hour", "type": "quantitative"},
                     "y": {"field": "hs_m", "type": "quantitative"},
                     "tooltip": [
                         {"field": "timestamp", "type": "nominal", "title": "UTC Timestamp"},
-                        {"field": "hs_m", "type": "quantitative", "title": "Significant Wave Height (m)"},
+                        {"field": "hour", "type": "quantitative", "title": "Lead Time (+hrs)"},
+                        {"field": "hs_m", "type": "quantitative", "title": "Significant Wave Height Hs (m)"},
                         {"field": "wind_kts", "type": "quantitative", "title": "Wind Speed (kts)"},
+                        {"field": "swell_sec", "type": "quantitative", "title": "Swell Period (s)"},
                         {"field": "sea_state", "type": "quantitative", "title": "Douglas Sea Scale (0-9)"},
                         {"field": "threat_level", "type": "nominal", "title": "Threat Level"},
+                        {"field": "safe_status", "type": "nominal", "title": "Operational Safety"},
                     ],
                 },
             },
             {
-                "mark": {"type": "rule", "color": "#DC2626", "strokeDash": [4, 4], "strokeWidth": 1.8},
+                "mark": {"type": "rule", "color": "#DC2626", "strokeDash": [4, 4], "strokeWidth": 2.0},
                 "encoding": {"y": {"field": "threshold_m", "type": "quantitative"}},
             },
         ],
@@ -285,13 +382,13 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
 
     return {
         "$schema": VEGA_LITE_SCHEMA,
-        "description": "India EEZ Map: 20 Offshore Rigs, 120 Candidate Wells, 48h Storm Zones & Transit Trajectories",
+        "description": "Interactive India EEZ Map: Scroll to Zoom, Drag to Pan, Hover over 20 Rigs & 120 Candidate Wells",
         "padding": {"left": 8, "right": 8, "top": 8, "bottom": 8},
         "vconcat": [
             {
-                "width": 480,
-                "height": 310,
-                "title": "Map of India & EEZ: 20 Rigs (▲), 120 Candidate Wells (●), 48h Storm Cones & Optimal Routes",
+                "width": 520,
+                "height": 340,
+                "title": "Interactive Map of India & EEZ: 20 Rigs (▲), 120 Wells (●), 48h Storm Cones (Scroll Zoom & Hover)",
                 "layer": map_layers,
             },
             weather_panel,

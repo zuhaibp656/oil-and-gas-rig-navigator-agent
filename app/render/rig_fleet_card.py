@@ -10,10 +10,12 @@ from typing import Any
 
 try:
     from app.contracts import FleetSummary, WellReadinessStatus
+    from app.render.interactive_html_map import publish_interactive_html_map
     from app.render.rig_map_vega import SPEC_POINTER
     from app.rigs.india_eez_dataset import INDIA_120_WELL_REGISTRY
 except ImportError:
     from contracts import FleetSummary, WellReadinessStatus
+    from render.interactive_html_map import publish_interactive_html_map
     from render.rig_map_vega import SPEC_POINTER
     from rigs.india_eez_dataset import INDIA_120_WELL_REGISTRY
 
@@ -43,25 +45,39 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
     safe_well_count = sum(1 for w in wells if w.status == WellReadinessStatus.SAFE_READY_TO_SPUD)
     storm_well_count = sum(1 for w in wells if w.status == WellReadinessStatus.STORM_LOCKED)
 
+    _, cloud_html_url = publish_interactive_html_map(summary, "latest")
+
     add(_text("rfc-title", "ORMWO — India EEZ Offshore Rig & 48h Weather Optimizer", "h3"))
     add(
         _text(
             "rfc-subtitle",
             (
                 f"India EEZ Theater: {summary.total_rigs} Rigs  ·  {len(wells)} Candidate/Active Wells "
-                f"({safe_well_count} Metocean-Safe, {storm_well_count} Storm-Locked)"
+                f"({safe_well_count} Metocean-Safe, {storm_well_count} Storm-Locked)  ·  "
+                "🖱️ Scroll to Zoom · Drag to Pan · Hover Over Rigs (▲) & Wells (●) for Telemetry"
+            ),
+            "caption",
+        )
+    )
+    add(
+        _text(
+            "rfc-interactive-links",
+            (
+                f"🌐 **Full-Screen Interactive Leaflet.js + Vega-Lite Command Map**: "
+                f"[Open Cloud Interactive Map]({cloud_html_url})  ·  "
+                "[Open Local Interactive Map (Port 8088)](http://127.0.0.1:8088/india_eez_interactive_map.html)"
             ),
             "caption",
         )
     )
     add({"id": "rfc-div-1", "component": "Divider"})
 
-    # Interactive 2-Panel Vega Map of India + 48h Weather Forecast
+    # Interactive 2-Panel Vega Map of India + 48h Weather Forecast (with bind='scales' zoom/pan & hover tooltips)
     chart_comp = {
         "id": "rfc-chart-vega",
         "component": "VegaChart",
         "spec": {"path": SPEC_POINTER},
-        "height": 470,
+        "height": 540,
     }
     components.append(chart_comp)
     children.append("rfc-chart-vega")
