@@ -353,9 +353,27 @@ def register_with_gemini_enterprise(
         )
         return
 
+    icon_path = ROOT_DIR / "assets" / "ormwo_agent_icon.png"
+    b64_icon = ""
+    if icon_path.exists():
+        import base64
+        b64_icon = base64.b64encode(icon_path.read_bytes()).decode("ascii")
+
+    starter_prompts = [
+        {
+            "text": "Run the Google DeepMind GenCast and GraphCast 48-hour metocean forecast across the Indian EEZ. Which storm zones are active and which nearby safe wells should our threatened rigs [1] through [6] relocate to?"
+        },
+        {
+            "text": "Explain what will happen to our rigs in Mumbai High inside Red Circle 1 (STORM-ARB-01) over the next 48 hours and give me the exact relocation route and INR Crore savings for Rigs [1] to [4]."
+        },
+        {
+            "text": "Evaluate RIG-OFFSHORE-04 (Sagar Samrat) and RIG-OFFSHORE-05 (Dhirubhai Deepwater KG1) and run the Monte Carlo preventative relocation simulation."
+        },
+    ]
+
     for loc_and_id in app_ids:
         loc, eng_id = loc_and_id.split(":", 1)
-        reg_url = (
+        agents_base_url = (
             f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}"
             f"/locations/{loc}/collections/default_collection/engines/{eng_id}"
             f"/assistants/default_assistant/agents"
@@ -363,17 +381,20 @@ def register_with_gemini_enterprise(
         payload = {
             "displayName": "ORMWO Rig & Metocean Optimizer",
             "description": (
-                "Offshore Rig Mobilization & Weather Optimizer (ORMWO) — Renders interactive "
-                "India EEZ Map (20 Rigs, 120 Wells, 48h Storm Cones & Waypoints) and CAG #15117 Audit Logs."
+                "Offshore Rig Mobilization & Weather Optimizer (ORMWO) — Google DeepMind GenCast & GraphCast "
+                "48h Storm Forecasting, Safe-Well Relocation & India EEZ Command Map."
             ),
-            "icon": {
-                "uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/oil_barrel/default/24px.svg"
-            },
+            "icon": (
+                {"content": b64_icon}
+                if b64_icon
+                else {"uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/oil_barrel/default/24px.svg"}
+            ),
+            "starterPrompts": starter_prompts,
             "adkAgentDefinition": {
                 "toolSettings": {
                     "toolDescription": (
-                        "Use ORMWO to query offshore rig telemetry, 48-hour marine weather forecasts, "
-                        "Monte Carlo storm evacuation/redeployment trajectories, and India EEZ maps."
+                        "Use ORMWO to run Google DeepMind GenCast and GraphCast 48h metocean forecasts, "
+                        "identify storm-locked wells to avoid, and compute zero-downtime safe well relocations across India EEZ."
                     )
                 },
                 "provisionedReasoningEngine": {
@@ -381,17 +402,45 @@ def register_with_gemini_enterprise(
                 },
             },
         }
-        req = urllib.request.Request(
-            reg_url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
+
+        # Check if ORMWO agent already exists in this Gemini Enterprise engine so we PATCH in-place
+        existing_agent_name: str | None = None
+        try:
+            list_req = urllib.request.Request(agents_base_url, headers=headers, method="GET")
+            with urllib.request.urlopen(list_req, timeout=15) as l_resp:
+                l_data = json.loads(l_resp.read().decode("utf-8"))
+                for ag in l_data.get("agents", []):
+                    if "ORMWO" in ag.get("displayName", ""):
+                        existing_agent_name = ag.get("name")
+                        break
+        except Exception:
+            existing_agent_name = None
+
+        if existing_agent_name:
+            patch_url = (
+                f"https://discoveryengine.googleapis.com/v1alpha/{existing_agent_name}"
+                "?updateMask=displayName,description,icon,starterPrompts,adkAgentDefinition"
+            )
+            payload["name"] = existing_agent_name
+            req = urllib.request.Request(
+                patch_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="PATCH",
+            )
+        else:
+            req = urllib.request.Request(
+                agents_base_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
                 res_body = json.loads(resp.read().decode("utf-8"))
                 print(
-                    f"[SUCCESS] Registered ORMWO Agent into Gemini Enterprise App '{eng_id}' ({loc}): "
+                    f"[SUCCESS] Synced ORMWO Agent (with custom PNG icon & starter prompts) in Gemini Enterprise App '{eng_id}' ({loc}): "
                     f"{res_body.get('name', 'OK')}"
                 )
         except urllib.error.HTTPError as http_err:
