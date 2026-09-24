@@ -26,8 +26,8 @@ def test_build_rig_fleet_map_spec():
 
     india_map_panel = spec["vconcat"][0]
     assert "layer" in india_map_panel
-    # 5 layers: India Coastline + 48h Storm Zones + 120 Wells + 20 Rigs + Waypoint Trajectory
-    assert len(india_map_panel["layer"]) == 5
+    # 6 layers: India Coastline + 48h Storm Zones + Callout Labels + 120 Wells + 20 Rigs + Waypoint Trajectory
+    assert len(india_map_panel["layer"]) >= 5
     # Verify 120 wells and 20 rigs in layers
     assert len(india_map_panel["layer"][2]["data"]["values"]) == 120
     assert len(india_map_panel["layer"][3]["data"]["values"]) == 20

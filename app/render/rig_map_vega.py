@@ -172,16 +172,16 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 "order": {"field": "order", "type": "quantitative"},
             },
         },
-        # Layer 2: 48h Storm Cyclone Hazard Zones
+        # Layer 2: 48h Storm Cyclone Hazard Zones (Red Circles)
         {
             "data": {"values": storm_zones},
             "mark": {
                 "type": "circle",
                 "size": 3600,
                 "color": "#EF4444",
-                "opacity": 0.20,
+                "opacity": 0.22,
                 "stroke": "#DC2626",
-                "strokeWidth": 1.8,
+                "strokeWidth": 2.2,
                 "strokeDash": [4, 3],
             },
             "encoding": {
@@ -328,6 +328,46 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 ],
             },
         })
+
+    # Top-level Text Callouts for Red Storm Circles & Numbered Rig Escapes [1]..[6]
+    map_layers.append({
+        "data": {
+            "values": [
+                {
+                    "longitude": 71.35,
+                    "latitude": 20.65,
+                    "label": "RED CIRCLE 1: MUMBAI HIGH CYCLONE (Hs=4.2m - DO NOT DRILL)",
+                },
+                {
+                    "longitude": 82.25,
+                    "latitude": 17.55,
+                    "label": "RED CIRCLE 2: KG-BASIN SWELL (Hs=3.8m - DO NOT DRILL)",
+                },
+                {
+                    "longitude": 71.5,
+                    "latitude": 18.0,
+                    "label": "[1] Sagar Samrat -> WELL-IND-004 | [2] Sagar Ratna -> WELL-IND-005",
+                },
+                {
+                    "longitude": 82.5,
+                    "latitude": 15.0,
+                    "label": "[5] Dhirubhai KG1 -> WELL-IND-048 | [6] Platinum Exp -> WELL-IND-049",
+                },
+            ]
+        },
+        "mark": {
+            "type": "text",
+            "fontSize": 10,
+            "fontWeight": "bold",
+            "color": "#F8FAFC",
+            "fill": "#F8FAFC",
+        },
+        "encoding": {
+            "x": {"field": "longitude", "type": "quantitative"},
+            "y": {"field": "latitude", "type": "quantitative"},
+            "text": {"field": "label", "type": "nominal"},
+        },
+    })
 
     weather_panel = {
         "width": 520,

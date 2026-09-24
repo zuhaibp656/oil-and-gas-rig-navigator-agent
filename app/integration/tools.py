@@ -88,6 +88,30 @@ def resolve_pending_fleet_summary(val: Any) -> FleetSummary | None:
     return None
 
 
+def _build_all_storm_relocation_simulations(focus_rig_id: str | None = None) -> list[MonteCarloTransitResult]:
+    """Build Monte Carlo relocation trajectories for all 6 storm-threatened rigs ([1]..[6]) so maps show every path."""
+    storm_rig_ids = [
+        "RIG-OFFSHORE-04",  # [1] Sagar Samrat (Mumbai High)
+        "RIG-OFFSHORE-01",  # [2] Sagar Ratna (Mumbai High)
+        "RIG-OFFSHORE-02",  # [3] Sagar Bhushan (Mumbai High)
+        "RIG-OFFSHORE-03",  # [4] Aban Ice (Mumbai High)
+        "RIG-OFFSHORE-05",  # [5] Dhirubhai Deepwater KG1 (KG-DWN Basin)
+        "RIG-OFFSHORE-06",  # [6] Platinum Explorer (KG-DWN Basin)
+    ]
+    if focus_rig_id and focus_rig_id in storm_rig_ids:
+        storm_rig_ids = [focus_rig_id] + [r for r in storm_rig_ids if r != focus_rig_id]
+    elif focus_rig_id:
+        storm_rig_ids = [focus_rig_id] + storm_rig_ids[:5]
+
+    results: list[MonteCarloTransitResult] = []
+    for r_id in storm_rig_ids:
+        try:
+            results.append(execute_monte_carlo_transit_simulation(rig_id=r_id))
+        except Exception:
+            pass
+    return results
+
+
 def _queue_india_map_surface(
     callback_context: CallbackContext | None,
     rigs: list[RigUnit] | None = None,
@@ -111,11 +135,15 @@ def _queue_india_map_surface(
             existing = _SURFACE_MEMORY_CACHE[raw]
 
     merged_weather = weather_series or (existing.weather_series if existing else [])
-    merged_sims = (
-        [transit_sim]
-        if transit_sim is not None
-        else (existing.transit_simulations if existing else [])
-    )
+    all_storm_sims = _build_all_storm_relocation_simulations(focus_rig_id=selected_rig_id)
+    if transit_sim is not None:
+        other_sims = [s for s in all_storm_sims if s.rig_id != transit_sim.rig_id]
+        merged_sims = [transit_sim, *other_sims]
+    elif existing and existing.transit_simulations:
+        merged_sims = existing.transit_simulations
+    else:
+        merged_sims = all_storm_sims
+
     merged_audit = audit_reference_id or (existing.audit_reference_id if existing else "")
 
     summary = FleetSummary(
@@ -124,7 +152,7 @@ def _queue_india_map_surface(
         in_transit=in_transit,
         standby_maintenance=standby_maint,
         rigs=fleet_rigs,
-        selected_rig_id=selected_rig_id or (existing.selected_rig_id if existing else None),
+        selected_rig_id=selected_rig_id or (existing.selected_rig_id if existing else "RIG-OFFSHORE-04"),
         wells=INDIA_120_WELL_REGISTRY,
         weather_series=merged_weather,
         transit_simulations=merged_sims,

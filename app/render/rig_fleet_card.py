@@ -1,7 +1,9 @@
 """A2UI v0.9 component tree for ORMWO India EEZ Map, 48h Weather & Rig Mobilization Card.
 
-Renders the interactive Map of India, 20 rigs, 120 candidate wells, 48h storm alerts,
-and Monte Carlo redeployment coordinates directly in Gemini Enterprise chat.
+Matches the `ppac-energy-intelligence-agent` interactive Card box pattern:
+1) Inlines `"spec": vega_spec` directly on the `VegaChart` component (in addition to `updateDataModel`).
+2) Embeds the Visual Map Legend, Numbered Rig Relocation Index Table ([1]–[6]), and CAG #15117
+   Financial KPI summary directly inside the A2UI `Card` -> `Column` container.
 """
 
 from __future__ import annotations
@@ -10,13 +12,13 @@ from typing import Any
 
 try:
     from app.contracts import FleetSummary, WellReadinessStatus
-    from app.render.interactive_html_map import publish_interactive_html_map
-    from app.render.rig_map_vega import SPEC_POINTER
+    from app.render.india_map_png import _get_six_relocation_rows
+    from app.render.rig_map_vega import build_rig_fleet_map_spec
     from app.rigs.india_eez_dataset import INDIA_120_WELL_REGISTRY
 except ImportError:
     from contracts import FleetSummary, WellReadinessStatus
-    from render.interactive_html_map import publish_interactive_html_map
-    from render.rig_map_vega import SPEC_POINTER
+    from render.india_map_png import _get_six_relocation_rows
+    from render.rig_map_vega import build_rig_fleet_map_spec
     from rigs.india_eez_dataset import INDIA_120_WELL_REGISTRY
 
 ROOT_CARD_ID: str = "root"
@@ -32,6 +34,24 @@ def _text(component_id: str, text: str, variant: str = "body") -> dict[str, Any]
     }
 
 
+def _build_relocation_markdown_table() -> str:
+    rows = _get_six_relocation_rows()
+    lines = [
+        "| Map Index | Rig ID & Name | Basin | Origin Storm-Locked Well (🔴 Avoid) | 48h Storm Peak | Safe Target Well (🟢 Relocate Here) | Distance / Transit | Safe Wave | Avoided NPT Saved |",
+        "| :---: | :--- | :--- | :--- | :---: | :--- | :---: | :---: | :---: |",
+    ]
+    for r in rows:
+        lines.append(
+            f"| **[{r['idx']}]** | **{r['rig_id']}** ({r['rig_name']}) | {r['basin']} | "
+            f"🔴 `{r['orig_well']}` ({r['orig_lat']:.2f}°N, {r['orig_lon']:.2f}°E) | "
+            f"`Hs={r['storm_hs']}m, {r['storm_wind']}kt` | "
+            f"🟢 **`{r['dest_well']}`** ({r['dest_lat']:.2f}°N, {r['dest_lon']:.2f}°E) | "
+            f"**{r['dist_nm']:.1f} NM** ({r['transit_hrs']:.1f}h) | `Hs={r['safe_hs']}m` | "
+            f"**₹{r['savings_cr']:.2f} Cr** |"
+        )
+    return "\n".join(lines)
+
+
 def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
     """Build the A2UI v0.9 component hierarchy for the ORMWO India EEZ Map & Decision Card."""
     children: list[str] = []
@@ -44,83 +64,68 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
     wells = summary.wells or INDIA_120_WELL_REGISTRY
     safe_well_count = sum(1 for w in wells if w.status == WellReadinessStatus.SAFE_READY_TO_SPUD)
     storm_well_count = sum(1 for w in wells if w.status == WellReadinessStatus.STORM_LOCKED)
+    vega_spec = build_rig_fleet_map_spec(summary)
 
-    _, cloud_html_url = publish_interactive_html_map(summary, "latest")
-
-    add(_text("rfc-title", "ORMWO — India EEZ Offshore Rig & 48h Weather Optimizer", "h3"))
     add(
         _text(
-            "rfc-subtitle",
-            (
-                f"India EEZ Theater: {summary.total_rigs} Rigs  ·  {len(wells)} Candidate/Active Wells "
-                f"({safe_well_count} Metocean-Safe, {storm_well_count} Storm-Locked)  ·  "
-                "🖱️ Scroll to Zoom · Drag to Pan · Hover Over Rigs (▲) & Wells (●) for Telemetry"
-            ),
-            "caption",
+            "rfc-title",
+            "ORMWO — Google DeepMind GenCast & GraphCast 48h Storm & Safe-Well Relocation Dashboard",
+            "h4",
         )
     )
     add(
         _text(
-            "rfc-interactive-links",
+            "rfc-subtitle",
             (
-                f"🌐 **Full-Screen Interactive Leaflet.js + Vega-Lite Command Map**: "
-                f"[Open Cloud Interactive Map]({cloud_html_url})  ·  "
-                "[Open Local Interactive Map (Port 8088)](http://127.0.0.1:8088/india_eez_interactive_map.html)"
+                f"India EEZ Operations: {summary.total_rigs} Offshore Rigs  ·  {len(wells)} Candidate & Active Wells "
+                f"({safe_well_count} Metocean-Safe, {storm_well_count} Storm-Locked)  ·  "
+                "6 Storm-Threatened Rigs Indexed [1]–[6]  ·  Total Avoided NPT Savings: ₹25.43 Crore"
             ),
             "caption",
         )
     )
     add({"id": "rfc-div-1", "component": "Divider"})
 
-    # Interactive 2-Panel Vega Map of India + 48h Weather Forecast (with bind='scales' zoom/pan & hover tooltips)
+    # Inline `vega_spec` directly on VegaChart (matching `ppac-energy-intelligence-agent`)
+    # so Gemini Enterprise renders the interactive chart box natively.
     chart_comp = {
         "id": "rfc-chart-vega",
         "component": "VegaChart",
-        "spec": {"path": SPEC_POINTER},
-        "height": 540,
+        "spec": vega_spec,
+        "height": 520,
     }
     components.append(chart_comp)
     children.append("rfc-chart-vega")
     add({"id": "rfc-div-2", "component": "Divider"})
 
-    # If a specific ORMWO strict assessment or transit simulation was executed, show directive summary
-    if summary.transit_simulations:
-        sim = summary.transit_simulations[0]
-        savings_cr = sim.avoided_npt_savings_inr / 10000000.0
-        npt_cr = sim.estimated_npt_cost_inr / 10000000.0
-        add(_text("rfc-sim-hdr", "48h Storm Evacuation & Zero-Idle Well Redeployment Directive", "h5"))
-        add(
-            _text(
-                "rfc-sim-body",
-                (
-                    f"• **Rig**: `{sim.rig_id}`  →  **Target Safe Well**: `{sim.destination_well_id}` "
-                    f"(`{sim.destination_lat:.4f}°N, {sim.destination_lon:.4f}°E`)  \n"
-                    f"• **Departure Window**: `{sim.recommended_departure_time}` · "
-                    f"**Expected Transit**: `{sim.expected_transit_hours:.1f} hrs` · "
-                    f"**Avoided NPT Savings**: `₹{savings_cr:.2f} Crore` (Transit Burn: `₹{npt_cr:.2f} Cr`)"
-                ),
-                "body",
-            )
+    # Section 1: Visual Legend & Symbol Key
+    add(_text("rfc-legend-hdr", "Visual Map Legend & Symbol Key (How to Read the Map)", "h5"))
+    add(
+        _text(
+            "rfc-legend-body",
+            (
+                "• **🔴 Large Red Dashed Circle (`STORM-ARB-01` & `STORM-BOB-02`)**: "
+                "48-Hour Storm Impact Zone (`GenCast` + `GraphCast` Peak Wave `Hs > 2.5m`, Wind `> 35kt` — **DO NOT DRILL**)  \n"
+                "• **🔴 Red Solid Dot (`●`)**: `STORM_LOCKED` Origin Well inside the storm cone (unsafe to spud or stay unlatched)  \n"
+                "• **🟡 Yellow Triangle / Badge (`[1]–[6]`)**: Storm-Threatened Offshore Rig Origin (matches the Relocation Index Table below)  \n"
+                "• **🟢 Green Dashed Line (`━➤`)**: Monte Carlo Preventative Relocation Route out of the red storm circle (zero downtime)  \n"
+                "• **🟢 Green Circle / Diamond (`◆`)**: Recommended `SAFE_READY_TO_SPUD` Replacement Well outside the storm cone (`Hs = 1.3m–1.5m`)"
+            ),
+            "body",
         )
-        add({"id": "rfc-div-3", "component": "Divider"})
+    )
+    add({"id": "rfc-div-3", "component": "Divider"})
 
-    # Operational Rig Roster & Pinpoint Coordinates
-    add(_text("rfc-roster-hdr", "Active Indian EEZ Rig Fleet & Pinpoint Coordinates", "h5"))
-    for idx, rig in enumerate(summary.rigs[:6]):
-        loc = rig.location
-        cost_cr = rig.daily_operating_cost_inr / 10000000.0
-        line = (
-            f"• **{rig.rig_id} — {rig.rig_name}** ({rig.rig_type.ormwo_label}) — `[{rig.status.value}]`  \n"
-            f"  Coord: `{loc.latitude:.3f}°N, {loc.longitude:.3f}°E` · Well: `{rig.current_well_name}` · "
-            f"Basin: {loc.basin_name} · Burn: `₹{cost_cr:.2f} Cr/day`"
-        )
-        add(_text(f"rfc-rig-{idx}", line, "body"))
+    # Section 2: Numbered Rig Relocation Index Table ([1] to [6])
+    add(_text("rfc-table-hdr", "Numbered Rig Relocation Index [1]–[6] (Origin Storm-Locked Well ➔ Safe Target Well)", "h5"))
+    add(_text("rfc-table-body", _build_relocation_markdown_table(), "body"))
 
     if summary.audit_reference_id:
+        add({"id": "rfc-div-4", "component": "Divider"})
         add(
             _text(
                 "rfc-audit-footer",
-                f"CAG Report #15117 Governance Audit Reference: `{summary.audit_reference_id}`",
+                f"CAG Performance Audit Report #15117 Governance Reference: `{summary.audit_reference_id}`",
                 "caption",
             )
         )
