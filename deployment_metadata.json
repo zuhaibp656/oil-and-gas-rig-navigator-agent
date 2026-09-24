@@ -1,7 +1,10 @@
 {
   "deployment_target": "agent_runtime",
   "is_a2a": true,
+  "agent_framework": "google-adk",
+  "playground_enabled": true,
   "agent_directory": "app",
-  "region": "asia-south1",
-  "deployment_timestamp": "2026-09-23T17:15:00.000000+00:00"
+  "region": "us-central1",
+  "project_id": "zuhaibp-ai",
+  "reasoning_engine_resource_name": "projects/632239123109/locations/us-central1/reasoningEngines/6932952426999709696"
 }

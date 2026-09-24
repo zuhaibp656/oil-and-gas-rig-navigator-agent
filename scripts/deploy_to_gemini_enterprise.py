@@ -23,15 +23,33 @@ import urllib.error
 import urllib.request
 
 import google.auth
+from google.auth.transport.requests import Request
 import google.oauth2.credentials
+
+os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+_ARGOLIS_ADC_PATH = Path.home() / ".config" / "gcloud" / "argolis_admin_adc.json"
+_DEFAULT_ADC_PATH = Path.home() / ".config" / "gcloud" / "application_default_credentials.json"
 
-def get_gcloud_access_token() -> str:
-    """Retrieve active OAuth2 token from gcloud."""
+
+def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
+    """Create refreshed google.oauth2.credentials.Credentials for Argolis admin."""
+    for adc_path in (_ARGOLIS_ADC_PATH, _DEFAULT_ADC_PATH):
+        if adc_path.exists():
+            try:
+                creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                    str(adc_path),
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                )
+                creds.refresh(Request())
+                if creds.token:
+                    return creds
+            except Exception:
+                pass
     gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
     if not os.path.exists(gcloud_bin):
         gcloud_bin = "gcloud"
@@ -40,12 +58,26 @@ def get_gcloud_access_token() -> str:
         text=True,
         stderr=subprocess.DEVNULL,
     )
-    return out.strip()
+    return google.oauth2.credentials.Credentials(out.strip())
 
 
-def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
-    """Create google.oauth2.credentials.Credentials from active gcloud session."""
-    return google.oauth2.credentials.Credentials(get_gcloud_access_token())
+def get_gcloud_access_token() -> str:
+    """Retrieve active OAuth2 token for Argolis."""
+    creds = get_gcloud_credentials()
+    return str(creds.token)
+
+
+_ORIG_AUTH_DEFAULT = google.auth.default
+
+
+def _argolis_auth_default(*args, **kwargs):
+    try:
+        return get_gcloud_credentials(), os.environ.get("GOOGLE_CLOUD_PROJECT", "zuhaibp-ai")
+    except Exception:
+        return _ORIG_AUTH_DEFAULT(*args, **kwargs)
+
+
+google.auth.default = _argolis_auth_default
 
 
 def ensure_staging_bucket(project_id: str, region: str, bucket_name: str) -> str:

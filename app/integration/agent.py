@@ -28,13 +28,33 @@ from google.genai import types
 
 
 class _GcloudCliCredentials(google.oauth2.credentials.Credentials):
-    """Self-refreshing OAuth2 credentials backed by `gcloud auth print-access-token`."""
+    """Self-refreshing OAuth2 credentials backed by Argolis ADC or `gcloud auth print-access-token`."""
 
     def __init__(self) -> None:
+        adc_file = os.path.expanduser("~/.config/gcloud/argolis_admin_adc.json")
+        if os.path.exists(adc_file):
+            from google.auth.transport.requests import Request
+            c = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                adc_file,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            c.refresh(Request())
+            super().__init__(token=c.token)
+            return
         token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
         super().__init__(token=token)
 
     def refresh(self, request: Any) -> None:
+        adc_file = os.path.expanduser("~/.config/gcloud/argolis_admin_adc.json")
+        if os.path.exists(adc_file):
+            from google.auth.transport.requests import Request
+            c = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                adc_file,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            c.refresh(Request())
+            self.token = c.token
+            return
         self.token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
 
 
@@ -42,14 +62,26 @@ _ORIG_GOOGLE_AUTH_DEFAULT = google.auth.default
 
 
 def _patched_google_auth_default(*args: Any, **kwargs: Any) -> tuple[Any, str | None]:
-    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or "agy-sandbox-a58b7"
-    try:
-        return _GcloudCliCredentials(), project
-    except Exception:
-        return _ORIG_GOOGLE_AUTH_DEFAULT(*args, **kwargs)
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
+    adc_file = os.path.expanduser("~/.config/gcloud/argolis_admin_adc.json")
+    if os.path.exists(adc_file):
+        try:
+            from google.auth.transport.requests import Request
+            c = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                adc_file,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            c.refresh(Request())
+            return c, project
+        except Exception:
+            pass
+    return _ORIG_GOOGLE_AUTH_DEFAULT(*args, **kwargs)
 
 
-if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "TRUE":
+if (
+    os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "TRUE"
+    and os.path.exists(os.path.expanduser("~/.config/gcloud/argolis_admin_adc.json"))
+):
     google.auth.default = _patched_google_auth_default
 
 try:
