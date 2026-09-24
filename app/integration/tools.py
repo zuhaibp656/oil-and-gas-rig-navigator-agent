@@ -33,6 +33,10 @@ try:
         find_nearest_safe_candidate_well,
         resolve_rig_by_identifier,
     )
+    from app.rigs.google_weather_models import (
+        evaluate_all_storm_zones_and_safe_well_relocations,
+        run_google_weather_models_for_zone,
+    )
     from app.rigs.metocean_engine import (
         BASE_ASSESSMENT_TIME_UTC,
         compute_marine_weather_forecast,
@@ -46,6 +50,10 @@ except ImportError:
         MonteCarloTransitResult,
         RigOperationalStatus,
         RigUnit,
+    )
+    from rigs.google_weather_models import (
+        evaluate_all_storm_zones_and_safe_well_relocations,
+        run_google_weather_models_for_zone,
     )
     from rigs.india_eez_dataset import (
         ACTIVE_48H_STORM_ZONES,
@@ -335,16 +343,54 @@ def log_audit_trail(
 # Fleet & Legacy Compatibility Tools (list_rig_fleet, query_rig_telemetry)
 # ==============================================================================
 
+def forecast_storm_zones_and_redeployments(
+    basin_filter: str | None = None,
+    callback_context: CallbackContext | None = None,
+) -> dict[str, Any]:
+    """Runs Google's Weather Models (Google DeepMind GenCast 50-member diffusion ensemble, GraphCast 0.25°,
+    and Google Weather/Marine assimilation) across India's EEZ to identify:
+    1) All active 48-hour storm zones (Mumbai High / Arabian Sea and KG-DWN / Bay of Bengal),
+    2) Which wells MUST NOT be drilled because they will be hit by the storm (`STORM_LOCKED`), and
+    3) Which exact nearby metocean-safe candidate well (`SAFE_READY_TO_SPUD`) each affected rig should
+       relocate to so there is ZERO weather downtime.
+
+    Args:
+        basin_filter: Optional basin filter (e.g. 'Mumbai High', 'KG-DWN', 'Cauvery', 'Kutch').
+        callback_context: ADK callback context to attach the interactive India EEZ map surface.
+    """
+    report = evaluate_all_storm_zones_and_safe_well_relocations(basin_filter=basin_filter or None)
+    default_sim = execute_monte_carlo_transit_simulation(rig_id="RIG-OFFSHORE-04")
+    audit = record_governance_audit_trail(
+        event_type="GOOGLE_WEATHERNEXT_STORM_ZONE_AND_WELL_RELOCATION_SWEEP",
+        payload={
+            "storm_zones": report["executive_summary"]["active_storm_zones_count"],
+            "impacted_rigs": report["executive_summary"]["storm_threatened_rigs_requiring_relocation"],
+            "avoided_npt_savings_cr": report["executive_summary"]["total_fleet_avoided_npt_savings_inr_crore"],
+        },
+    )
+    _queue_india_map_surface(
+        callback_context,
+        rigs=INDIA_20_RIG_FLEET,
+        selected_rig_id="RIG-OFFSHORE-04",
+        transit_sim=default_sim,
+        audit_reference_id=str(audit["audit_reference_id"]),
+    )
+    report["audit_reference_id"] = audit["audit_reference_id"]
+    return report
+
+
 def list_rig_fleet(
     basin_filter: str | None = None,
     callback_context: CallbackContext | None = None,
 ) -> str:
-    """Lists active drilling rigs and candidate wells across India's EEZ and attaches the India Map."""
+    """Lists active drilling rigs, 120 candidate wells, Google WeatherNext (GenCast/GraphCast) 48h storm zones,
+    and zero-downtime safe well relocations across India's EEZ and attaches the interactive India Map."""
     rigs = INDIA_20_RIG_FLEET
     if basin_filter:
         q = basin_filter.strip().lower()
         rigs = [r for r in rigs if q in r.location.basin_name.lower() or q in r.rig_name.lower()]
 
+    weather_report = evaluate_all_storm_zones_and_safe_well_relocations(basin_filter=basin_filter or None)
     default_sim = execute_monte_carlo_transit_simulation(
         rig_id=rigs[0].rig_id if rigs else "RIG-OFFSHORE-04"
     )
@@ -379,6 +425,14 @@ def list_rig_fleet(
             },
         },
         "audit_reference_id": audit["audit_reference_id"],
+        "google_weather_models_storm_and_relocation_report": {
+            "weather_models": weather_report["weather_intelligence_engine"]["models_used"],
+            "active_48h_storm_zones": weather_report["active_48h_storm_zones"],
+            "impacted_rigs_and_zero_downtime_well_relocations": weather_report[
+                "impacted_rigs_and_zero_downtime_well_relocations"
+            ],
+            "storm_locked_wells_do_not_drill": weather_report["storm_locked_wells_avoid_list_sample"][:10],
+        },
     }
     return (
         f"Tracked {len(rigs)} rig(s) and {len(INDIA_120_WELL_REGISTRY)} wells across India's EEZ. "

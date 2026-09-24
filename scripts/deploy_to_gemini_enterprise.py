@@ -170,23 +170,28 @@ def deploy_to_vertex_agent_engine(
         except Exception:
             pass
 
+    env_vars = {
+        "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+        "GOOGLE_CLOUD_PROJECT": project_id,
+        "GOOGLE_CLOUD_LOCATION": region,
+        "ORMWO_MODEL": "gemini-2.5-flash",
+    }
+
     if existing_resource_name:
-        try:
-            print(f"[UPDATING] Existing Vertex AI Agent Engine in-place: {existing_resource_name}")
-            remote_engine = agent_engines.get(existing_resource_name)
-            updated = remote_engine.update(
-                agent_engine=adk_app,
-                requirements=requirements,
-                extra_packages=extra_packages,
-                display_name=display_name,
-                description=description,
-            )
-            res_name = updated.resource_name
-            state_file.write_text(res_name, encoding="utf-8")
-            _print_deployment_links(project_id, region, res_name)
-            return res_name
-        except Exception as exc:
-            print(f"[INFO] In-place update skipped ({exc}); creating new Agent Engine instance...")
+        print(f"[UPDATING] Existing Vertex AI Agent Engine in-place (strictly same deployment): {existing_resource_name}")
+        remote_engine = agent_engines.get(existing_resource_name)
+        updated = remote_engine.update(
+            agent_engine=adk_app,
+            requirements=requirements,
+            extra_packages=extra_packages,
+            display_name=display_name,
+            description=description,
+            env_vars=env_vars,
+        )
+        res_name = updated.resource_name
+        state_file.write_text(res_name, encoding="utf-8")
+        _print_deployment_links(project_id, region, res_name)
+        return res_name
 
     print(f"[DEPLOYING] Creating Vertex AI Agent Engine (ADK Playground Enabled) in {project_id} ({region})...")
     try:

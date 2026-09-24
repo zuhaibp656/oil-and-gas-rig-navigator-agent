@@ -167,27 +167,74 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
     const WAYPOINTS = {json.dumps(waypoints_js)};
     const VEGA_SPEC = {json.dumps(standalone_spec)};
 
-    // 1. Initialize Interactive Leaflet Map
-    const map = L.map('leaflet-map', {{ center: [16.8, 76.5], zoom: 5 }});
-    L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
-      attribution: '&copy; OpenStreetMap & CartoDB Dark Matter — India EEZ ORMWO',
-      maxZoom: 18
-    }}).addTo(map);
+    // 1. Initialize Interactive Leaflet Map (Zero-API-Key Esri Dark Gray, Ocean, Satellite & OpenStreetMap Basemaps)
+    const map = L.map('leaflet-map', {{ center: [16.8, 77.5], zoom: 5 }});
+    const darkOceanLayer = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        attribution: 'Esri, HERE, Garmin, NOAA — India EEZ ORMWO',
+        maxZoom: 16
+      }}),
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        maxZoom: 16
+      }})
+    ]).addTo(map);
 
-    // 2. Render 48-Hour Storm Hazard Cones
+    const hydroOceanLayer = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        attribution: 'Esri, GEBCO, NOAA, National Geographic — India EEZ Hydrography',
+        maxZoom: 16
+      }}),
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        maxZoom: 16
+      }})
+    ]);
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+      attribution: 'Esri World Imagery — Offshore Satellite View',
+      maxZoom: 18
+    }});
+
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }});
+
+    L.control.layers({{
+      "Dark Tactical Command (Esri)": darkOceanLayer,
+      "Bathymetric Ocean Map (GEBCO/NOAA)": hydroOceanLayer,
+      "Satellite Imagery (Esri)": satelliteLayer,
+      "OpenStreetMap Standard": osmLayer
+    }}, null, {{ position: 'topright' }}).addTo(map);
+
+    // 2. Render 48-Hour Google WeatherNext (GenCast / GraphCast) Storm Hazard Cones
     STORMS.forEach(st => {{
-      const circle = L.circle([st.latitude, st.longitude], {{
-        radius: (st.radius_deg || 0.9) * 111000,
+      const sLat = st.center_lat !== undefined ? st.center_lat : st.latitude;
+      const sLon = st.center_lon !== undefined ? st.center_lon : st.longitude;
+      const sName = st.name || st.storm_name || st.storm_id || 'Cyclonic Storm Zone';
+      const sBasin = st.basin_name || st.basin || 'Indian EEZ';
+      const sHs = st.peak_wave_hs_m !== undefined ? st.peak_wave_hs_m : st.peak_hs_m;
+      const sWind = st.peak_wind_knots !== undefined ? st.peak_wind_knots : st.peak_wind_kts;
+      if (sLat === undefined || sLon === undefined) return;
+      const circle = L.circle([sLat, sLon], {{
+        radius: (st.radius_deg || 1.15) * 111000,
         color: '#ef4444',
-        weight: 2,
+        weight: 2.5,
         dashArray: '6,4',
         fillColor: '#ef4444',
-        fillOpacity: 0.22
+        fillOpacity: 0.24
       }}).addTo(map);
       circle.bindTooltip(
-        `<b>48H STORM ALERT: ${{st.storm_name}}</b><br/>` +
-        `Basin: ${{st.basin}}<br/>Peak Wave Hs: <b>${{st.peak_hs_m}} m</b> | Peak Wind: <b>${{st.peak_wind_kts}} kts</b>`,
-        {{ sticky: true }}
+        `<div class="tooltip-card">` +
+        `<div class="tooltip-title" style="color:#f87171;">⚠️ GOOGLE WEATHERNEXT (GENCAST/GRAPHCAST) 48H STORM CONE</div>` +
+        `<table class="tooltip-grid">` +
+        `<tr><td class="k">Storm System</td><td class="v">${{sName}}</td></tr>` +
+        `<tr><td class="k">Affected Basin</td><td class="v">${{sBasin}}</td></tr>` +
+        `<tr><td class="k">Center Coord</td><td class="v">${{sLat.toFixed(2)}}°N, ${{sLon.toFixed(2)}}°E</td></tr>` +
+        `<tr><td class="k">Peak Wave (Hs)</td><td class="v" style="color:#f87171;">${{sHs}} m (&gt;2.5m Latch Limit)</td></tr>` +
+        `<tr><td class="k">Peak Sustained Wind</td><td class="v" style="color:#f87171;">${{sWind}} knots (&gt;35kt Limit)</td></tr>` +
+        `<tr><td class="k">Action</td><td class="v" style="color:#fbbf24;">DO NOT DRILL — Relocate Rigs to Nearby Safe Green Wells</td></tr>` +
+        `</table></div>`,
+        {{ sticky: true, opacity: 0.98 }}
       );
     }});
 

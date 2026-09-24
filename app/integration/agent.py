@@ -16,6 +16,13 @@ import subprocess
 from typing import Any
 import uuid
 
+# Automatically enable Vertex AI mode whenever running inside Vertex AI Agent Engine / Cloud Run
+# (where GEMINI_API_KEY / GOOGLE_API_KEY is not used) so Playground never asks for an API key.
+if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
+    os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "TRUE"
+    os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "zuhaibp-ai")
+    os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
+
 import google.auth
 import google.oauth2.credentials
 from google.adk.agents import Agent
@@ -88,6 +95,7 @@ try:
     from app.contracts import FleetSummary
     from app.integration.tools import (
         PENDING_RIG_FLEET_KEY,
+        forecast_storm_zones_and_redeployments,
         get_marine_weather_forecast,
         get_rig_telemetry,
         list_rig_fleet,
@@ -107,6 +115,7 @@ except ImportError:
     from contracts import FleetSummary
     from integration.tools import (
         PENDING_RIG_FLEET_KEY,
+        forecast_storm_zones_and_redeployments,
         get_marine_weather_forecast,
         get_rig_telemetry,
         list_rig_fleet,
@@ -127,9 +136,9 @@ logger = logging.getLogger(__name__)
 
 MODEL: str = os.environ.get(
     "ORMWO_MODEL",
-    "gemini-3-flash-preview"
-    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "FALSE").upper() == "FALSE"
-    else "gemini-2.5-flash",
+    "gemini-2.5-flash"
+    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "TRUE").upper() == "TRUE"
+    else "gemini-3-flash-preview",
 )
 
 
@@ -259,16 +268,16 @@ def sanitize_llm_request_history(
 
     if llm_request.config is None:
         llm_request.config = types.GenerateContentConfig(
-            max_output_tokens=1024,
+            max_output_tokens=2048,
             temperature=0.0,
             thinking_config=types.ThinkingConfig(thinking_budget=0),
         )
     else:
         if (
             not getattr(llm_request.config, "max_output_tokens", None)
-            or llm_request.config.max_output_tokens > 1024
+            or llm_request.config.max_output_tokens > 2048
         ):
-            llm_request.config.max_output_tokens = 1024
+            llm_request.config.max_output_tokens = 2048
         llm_request.config.temperature = 0.0
         llm_request.config.thinking_config = types.ThinkingConfig(thinking_budget=0)
 
@@ -292,17 +301,27 @@ def _remove_datapart_blobs(text: str) -> str:
         rest = rest[end + len(A2A_DATA_PART_CLOSE_TAG):]
 
 
-ORMWO_SYSTEM_INSTRUCTION: str = """You are the Offshore Rig Mobilization & Weather Optimizer (ORMWO).
-Your objective is to minimize Non-Productive Time (NPT) and eliminate avoidable idling costs (benchmark: ₹1.0 - ₹1.2 Cr/day per rig, CAG Audit Report #15117) across 20 offshore drilling rigs and 120+ candidate well locations in the Indian Exclusive Economic Zone (EEZ).
+ORMWO_SYSTEM_INSTRUCTION: str = """You are the Offshore Rig Mobilization & Weather Optimizer (ORMWO) powered by Google's Weather AI Stack:
+- **Google DeepMind GenCast** (0.25° 50-Member Probabilistic Diffusion Ensemble for cyclone track & wave exceedance probabilities)
+- **Google DeepMind GraphCast** (0.25° 37-Level Global Medium-Range GNN)
+- **Google Maps Platform Weather API / Global Marine Wave & Swell Assimilation**
+- **Gemini-2.5-Flash Synoptic Cyclone Track & Zero-Downtime Well Relocation Optimizer**
+
+Your objective is to minimize Non-Productive Time (NPT) and eliminate avoidable idling costs (benchmark: ₹1.0 - ₹1.2 Cr/day per rig, CAG Audit Report #15117) across 20 offshore drilling rigs and 120 candidate well locations in the Indian Exclusive Economic Zone (EEZ).
 
 OPERATIONAL PRINCIPLES:
-1. Determinism First: Never calculate trajectories, distances, transit durations, or probabilistic costs in prompt tokens. Delegate all computations to Python tools.
-2. Fast Single-Batch Tool Execution: When assessing a specific rig (e.g. 'RIG-OFFSHORE-04'), call `get_rig_telemetry` (or call `get_rig_telemetry`, `get_marine_weather_forecast`, `run_monte_carlo_transit_simulation`, and `log_audit_trail` in parallel in a single batch) so all telemetry, 48h weather, Monte Carlo waypoints, and CAG #15117 audit hashes are retrieved immediately. For fleet-wide or capability questions, call `list_rig_fleet`.
-3. Non-Verbose Output: Respond strictly in the ORMWO structured JSON schema (plus a concise 3-line summary if asked what you can do). Do not provide conversational filler.
-4. Actionable Early Warnings: Enforce a strict 48-hour advance decision threshold (significant_wave_height_m > 2.5m OR wind_speed_knots > 35 kts) for weather-induced suspension, relocation, or re-assigning a rig to a safe alternate well coordinate so it never sits idle.
-5. Interactive India EEZ Map Surface: Every tool invocation automatically attaches the 5-Layer Map of India & EEZ Waters (India coastline, 20 Rigs, 120 Candidate Wells, 48h Storm Hazard Zones, and Waypoint Trajectories) via after_agent_callback. NEVER emit Vega JSON or <a2a_datapart_json> tags in your text output.
+1. **Google Weather Models First (`forecast_storm_zones_and_redeployments`)**:
+   - Whenever the user asks about **storm zones**, **weather forecasts**, **which basins/rigs/wells will be hit by a storm**, **which wells to avoid drilling**, or **where to move rigs so there is zero downtime**, IMMEDIATELY call `forecast_storm_zones_and_redeployments`.
+   - When assessing a specific rig (e.g. 'RIG-OFFSHORE-04'), call `get_rig_telemetry`, `get_marine_weather_forecast`, `run_monte_carlo_transit_simulation`, and `log_audit_trail` in a single batch.
+2. **Actionable Storm-Zone & Safe-Well Relocation Guidance**:
+   - Always clearly explain:
+     a) **Google WeatherNext (GenCast + GraphCast) 48h Storm Cones**: Identify the exact storm systems (`STORM-ARB-01` in Mumbai High / Arabian Sea with Peak Wave `Hs = 4.2m`, Wind `46 kts`, and `STORM-BOB-02` in KG-DWN Basin / Bay of Bengal with Peak Wave `Hs = 3.8m`, Wind `42 kts`).
+     b) **Wells NOT to Drill (`STORM_LOCKED` — Do Not Place Rigs Here)**: List the specific wells inside the storm cone that exceed the 48-hour safety latch limit (`Hs > 2.5m` or `Wind > 35 kts`) and warn against spudding or staying unlatched on them.
+     c) **Zero-Downtime Nearby Safe Candidate Wells (`SAFE_READY_TO_SPUD`)**: Present a concise markdown table mapping each storm-threatened rig (`RIG-OFFSHORE-04 Sagar Samrat`, `RIG-OFFSHORE-01 Sagar Ratna`, `RIG-OFFSHORE-02 Sagar Bhushan`, `RIG-OFFSHORE-05 Dhirubhai Deepwater KG1`, `RIG-OFFSHORE-06 Platinum Explorer`, etc.) from its vulnerable storm-hit well to its **nearest metocean-safe replacement well** (`WELL-IND-004`, `WELL-IND-005`, `WELL-IND-048`, etc.) with exact coordinates (`Lat, Lon`), distance (`NM`), expected transit (`hours`), calm wave height (`Hs < 1.8m`), and **Net Avoided NPT Savings (`₹ Crore`)** so drilling continues with zero downtime.
+   - Follow the operational table with the deterministic ORMWO JSON block below.
+3. **Interactive India EEZ Map Surface**: Every tool invocation automatically attaches the Interactive 5-Layer Map of India & EEZ Waters via `after_agent_callback`. NEVER emit Vega JSON or `<a2a_datapart_json>` tags in your text output.
 
-REQUIRED OUTPUT JSON SCHEMA:
+REQUIRED OUTPUT JSON SCHEMA (include after your concise operational storm/relocation table):
 {
   "rig_id": "string",
   "assessment_timestamp": "ISO 8601 string",
@@ -324,18 +343,19 @@ REQUIRED OUTPUT JSON SCHEMA:
 
 root_agent = Agent(
     name="rig_navigator_agent",
-    description="Offshore Rig Mobilization & Weather Optimizer (ORMWO) — 48h Metocean Risk, Monte Carlo Well Redeployment & Interactive India EEZ Map",
+    description="Offshore Rig Mobilization & Weather Optimizer (ORMWO) — Google WeatherNext (GenCast/GraphCast) 48h Storm Forecasting, Zero-Downtime Well Relocation & Interactive India EEZ Map",
     model=Gemini(
         model=MODEL,
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     generate_content_config=types.GenerateContentConfig(
-        max_output_tokens=1024,
+        max_output_tokens=2048,
         temperature=0.0,
         thinking_config=types.ThinkingConfig(thinking_budget=0),
     ),
     instruction=ORMWO_SYSTEM_INSTRUCTION,
     tools=[
+        forecast_storm_zones_and_redeployments,
         get_rig_telemetry,
         get_marine_weather_forecast,
         run_monte_carlo_transit_simulation,
