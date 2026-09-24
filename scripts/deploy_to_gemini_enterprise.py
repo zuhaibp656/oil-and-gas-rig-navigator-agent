@@ -33,32 +33,83 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 _ARGOLIS_ADC_PATH = Path.home() / ".config" / "gcloud" / "argolis_admin_adc.json"
+_SA_KEY_PATH = Path.home() / ".config" / "gcloud" / "zuhaibp_ai_deployer_sa.json"
 _DEFAULT_ADC_PATH = Path.home() / ".config" / "gcloud" / "application_default_credentials.json"
 
 
-def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
-    """Create refreshed google.oauth2.credentials.Credentials strictly for Argolis admin@zuhaibp.altostrat.com."""
-    gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
-    if not os.path.exists(gcloud_bin):
-        gcloud_bin = "gcloud"
+def _bootstrap_permanent_access(creds: google.oauth2.credentials.Credentials, project_id: str = "zuhaibp-ai") -> None:
+    """Grant user:zuhaibp@google.com project roles on zuhaibp-ai so CloudTop never hits 1-hour Argolis RAPT expiry."""
     try:
-        out = subprocess.check_output(
-            [gcloud_bin, "auth", "print-access-token", "--account=admin@zuhaibp.altostrat.com"],
-            text=True,
-            stderr=subprocess.DEVNULL,
+        url = f"https://cloudresourcemanager.googleapis.com/v1/projects/{project_id}:getIamPolicy"
+        req = urllib.request.Request(
+            url,
+            data=b"{}",
+            headers={"Authorization": f"Bearer {creds.token}", "Content-Type": "application/json"},
+            method="POST",
         )
-        if out.strip():
-            return google.oauth2.credentials.Credentials(out.strip())
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            policy = json.loads(resp.read().decode("utf-8"))
+        bindings = policy.get("bindings", [])
+        member = "user:zuhaibp@google.com"
+        needed_roles = [
+            "roles/aiplatform.admin",
+            "roles/storage.admin",
+            "roles/discoveryengine.admin",
+            "roles/iam.serviceAccountUser",
+        ]
+        changed = False
+        for role in needed_roles:
+            found = False
+            for b in bindings:
+                if b.get("role") == role:
+                    found = True
+                    if member not in b.get("members", []):
+                        b.setdefault("members", []).append(member)
+                        changed = True
+            if not found:
+                bindings.append({"role": role, "members": [member]})
+                changed = True
+        if changed:
+            set_url = f"https://cloudresourcemanager.googleapis.com/v1/projects/{project_id}:setIamPolicy"
+            set_req = urllib.request.Request(
+                set_url,
+                data=json.dumps({"policy": policy}).encode("utf-8"),
+                headers={"Authorization": f"Bearer {creds.token}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(set_req, timeout=5)
+            print("[OK] Granted permanent CloudTop IAM access (zuhaibp@google.com) on zuhaibp-ai!")
     except Exception:
         pass
-    if _ARGOLIS_ADC_PATH.exists():
-        creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
-            str(_ARGOLIS_ADC_PATH),
+
+
+def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
+    """Create refreshed google.oauth2.credentials.Credentials for Argolis / zuhaibp-ai."""
+    if _SA_KEY_PATH.exists():
+        from google.oauth2 import service_account
+        creds = service_account.Credentials.from_service_account_file(
+            str(_SA_KEY_PATH),
             scopes=["https://www.googleapis.com/auth/cloud-platform"],
         )
         creds.refresh(Request())
-        if creds.token:
-            return creds
+        return creds
+
+    if _ARGOLIS_ADC_PATH.exists():
+        try:
+            creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                str(_ARGOLIS_ADC_PATH),
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            creds.refresh(Request())
+            if creds.token:
+                _bootstrap_permanent_access(creds)
+                return creds
+        except Exception:
+            pass
+
+    gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
+    if not os.path.exists(gcloud_bin):
+        gcloud_bin = "gcloud"
     out = subprocess.check_output(
         [gcloud_bin, "auth", "print-access-token"],
         text=True,
