@@ -272,7 +272,9 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
 
 
 def publish_interactive_html_map(summary: FleetSummary, surface_id: str) -> tuple[str, str]:
-    """Save the interactive HTML5/JS map locally and upload to GCS (`zuhaibp-ai-agent-staging`) if accessible."""
+    """Save the interactive HTML5/JS map locally (<2ms) and upload to GCS non-blockingly in a daemon thread."""
+    import threading
+
     html_content = build_interactive_india_eez_html(summary)
     local_dir = Path("/tmp/ormwo_interactive_maps")
     local_dir.mkdir(parents=True, exist_ok=True)
@@ -282,17 +284,34 @@ def publish_interactive_html_map(summary: FleetSummary, surface_id: str) -> tupl
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
     bucket_name = f"{project_id}-agent-staging"
     blob_name = f"interactive_maps/india_eez_map_{surface_id}.html"
-    cloud_console_url = f"https://storage.mtls.cloud.google.com/{bucket_name}/{blob_name}"
+    cloud_console_url = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
 
-    try:
-        from google.cloud import storage
-        client = storage.Client(project=project_id)
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        blob.upload_from_string(html_content, content_type="text/html; charset=utf-8")
-        latest_blob = bucket.blob("interactive_maps/india_eez_latest.html")
-        latest_blob.upload_from_string(html_content, content_type="text/html; charset=utf-8")
-    except Exception as exc:
-        logger.debug("Optional GCS interactive map upload skipped: %s", exc)
+    def _async_upload() -> None:
+        try:
+            os.environ.setdefault("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false")
+            from google.cloud import storage
+            from google.cloud.storage.retry import DEFAULT_RETRY
 
+            client = storage.Client(project=project_id)
+            bucket = client.bucket(bucket_name)
+            short_retry = DEFAULT_RETRY.with_deadline(4.0)
+            blob = bucket.blob(blob_name)
+            blob.upload_from_string(
+                html_content,
+                content_type="text/html; charset=utf-8",
+                timeout=4.0,
+                retry=short_retry,
+            )
+            latest_blob = bucket.blob("interactive_maps/india_eez_latest.html")
+            latest_blob.upload_from_string(
+                html_content,
+                content_type="text/html; charset=utf-8",
+                timeout=4.0,
+                retry=short_retry,
+            )
+        except Exception as exc:
+            logger.debug("Optional GCS interactive map upload skipped: %s", exc)
+
+    threading.Thread(target=_async_upload, daemon=True).start()
     return str(local_path), cloud_console_url
+
