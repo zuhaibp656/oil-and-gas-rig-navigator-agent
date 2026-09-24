@@ -216,21 +216,25 @@ def deploy_to_vertex_agent_engine(
     state_file = ROOT_DIR / ".reasoning_engine_id"
     existing_resource_name: str | None = None
     if state_file.exists():
-        existing_resource_name = state_file.read_text(encoding="utf-8").strip()
+        candidate = state_file.read_text(encoding="utf-8").strip()
+        try:
+            agent_engines.get(candidate)
+            existing_resource_name = candidate
+        except Exception:
+            existing_resource_name = None
 
     if not existing_resource_name:
         try:
-            for eng in reasoning_engines.ReasoningEngine.list():
-                if getattr(eng, "display_name", "") == display_name:
+            for eng in agent_engines.list():
+                if getattr(eng, "display_name", "") == display_name or "ORMWO" in getattr(eng, "display_name", ""):
                     existing_resource_name = eng.resource_name
+                    state_file.write_text(existing_resource_name, encoding="utf-8")
                     break
         except Exception:
             pass
 
     env_vars = {
         "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
-        "GOOGLE_CLOUD_PROJECT": project_id,
-        "GOOGLE_CLOUD_LOCATION": region,
         "ORMWO_MODEL": "gemini-2.5-flash",
     }
 
