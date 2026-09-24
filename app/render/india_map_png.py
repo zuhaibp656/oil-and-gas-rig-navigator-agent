@@ -271,22 +271,34 @@ def render_india_eez_map_png(summary: FleetSummary) -> bytes:
         draw.line([(MAP_X0, y), (MAP_X1, y)], fill=(30, 41, 59, 110), width=1)
         draw.text((MAP_X0 + 6, y - 8), f"{lat}°N", fill=(100, 116, 139), font=f_sm)
 
-    # India Mainland & Sri Lanka Polygons
+    # India Mainland & Sri Lanka Polygons with Continental Shelf Bathymetry & Terrain Shading
     india_pts = [project_india(lon, lat) for lon, lat in INDIA_MAINLAND_POLYGON]
     sri_pts = [project_india(lon, lat) for lon, lat in SRI_LANKA_POLYGON]
-    draw.polygon(india_pts, fill=(22, 36, 60, 255), outline=(56, 189, 248, 220))
-    draw.polygon(sri_pts, fill=(22, 36, 60, 255), outline=(56, 189, 248, 220))
 
-    draw.text(project_india(76.2, 20.8), "INDIA MAINLAND", fill=(148, 163, 184), font=f_bold)
-    draw.text(project_india(67.0, 12.8), "ARABIAN SEA\n(WEST COAST EEZ)", fill=(56, 189, 248), font=f_bold)
-    draw.text(project_india(83.5, 11.8), "BAY OF BENGAL\n(EAST COAST EEZ)", fill=(56, 189, 248), font=f_bold)
+    # Shallow Continental Shelf Bathymetric Glow (200m Isobar Shelf along West & East Coasts)
+    draw.polygon(india_pts, fill=(14, 45, 82, 130), outline=(38, 118, 178, 180), width=8)
+    draw.polygon(sri_pts, fill=(14, 45, 82, 130), outline=(38, 118, 178, 180), width=6)
 
-    # Draw 2 Red Storm Impact Circles with High-Contrast Callout Boxes
-    # Storm 1: Mumbai High Cyclone Cone (Center ~ 71.35E, 19.40N)
+    # Mainland Topographic Fill & Coastline
+    draw.polygon(india_pts, fill=(24, 44, 46, 255), outline=(56, 189, 248, 240), width=2)
+    draw.polygon(sri_pts, fill=(24, 44, 46, 255), outline=(56, 189, 248, 240), width=2)
+
+    draw.text(project_india(75.8, 21.2), "INDIA MAINLAND", fill=(203, 213, 225), font=f_bold)
+    draw.text(project_india(66.8, 12.8), "ARABIAN SEA\n(WESTERN EEZ)", fill=(56, 189, 248), font=f_bold)
+    draw.text(project_india(83.6, 11.8), "BAY OF BENGAL\n(EASTERN EEZ)", fill=(56, 189, 248), font=f_bold)
+    draw.text(project_india(67.2, 22.4), "Kutch Basin", fill=(125, 211, 252), font=f_sm)
+    draw.text(project_india(79.8, 10.5), "Cauvery Basin", fill=(125, 211, 252), font=f_sm)
+    draw.text(project_india(85.8, 19.6), "Mahanadi Basin", fill=(125, 211, 252), font=f_sm)
+
+    # Draw 2 Multi-Ring Red Storm Impact Circles with High-Contrast Callout Boxes
+    # Storm 1: Mumbai High Cyclone Cone (Outer 35kt Amber Ring + Inner 46kt Crimson Core)
+    s1_ox0, s1_oy0 = project_india(69.7, 20.8)
+    s1_ox1, s1_oy1 = project_india(73.0, 18.2)
+    draw.ellipse([s1_ox0, s1_oy0, s1_ox1, s1_oy1], fill=(245, 158, 11, 42), outline=(251, 191, 36, 190), width=2)
     s1_x0, s1_y0 = project_india(70.1, 20.5)
     s1_x1, s1_y1 = project_india(72.6, 18.5)
-    draw.ellipse([s1_x0, s1_y0, s1_x1, s1_y1], fill=(239, 68, 68, 75), outline=(239, 68, 68, 255), width=3)
-    draw.rectangle([s1_x0 - 8, s1_y0 - 42, s1_x0 + 300, s1_y0 - 4], fill=(127, 29, 29, 240), outline=(248, 113, 113, 255), width=2)
+    draw.ellipse([s1_x0, s1_y0, s1_x1, s1_y1], fill=(239, 68, 68, 92), outline=(239, 68, 68, 255), width=3)
+    draw.rectangle([s1_x0 - 8, s1_y0 - 42, s1_x0 + 300, s1_y0 - 4], fill=(127, 29, 29, 245), outline=(248, 113, 113, 255), width=2)
     draw.text(
         (s1_x0 - 2, s1_y0 - 38),
         "RED CIRCLE 1: MUMBAI HIGH CYCLONE CONE",
@@ -300,10 +312,13 @@ def render_india_eez_map_png(summary: FleetSummary) -> bytes:
         font=f_sm,
     )
 
-    # Storm 2: KG-Basin Severe Swell Cone (Center ~ 82.25E, 16.35N)
+    # Storm 2: KG-Basin Severe Swell Cone (Outer 35kt Amber Ring + Inner 42kt Crimson Core)
+    s2_ox0, s2_oy0 = project_india(80.7, 17.6)
+    s2_ox1, s2_oy1 = project_india(83.8, 15.2)
+    draw.ellipse([s2_ox0, s2_oy0, s2_ox1, s2_oy1], fill=(245, 158, 11, 42), outline=(251, 191, 36, 190), width=2)
     s2_x0, s2_y0 = project_india(81.1, 17.3)
     s2_x1, s2_y1 = project_india(83.4, 15.5)
-    draw.ellipse([s2_x0, s2_y0, s2_x1, s2_y1], fill=(239, 68, 68, 75), outline=(239, 68, 68, 255), width=3)
+    draw.ellipse([s2_x0, s2_y0, s2_x1, s2_y1], fill=(239, 68, 68, 92), outline=(239, 68, 68, 255), width=3)
     draw.rectangle([s2_x0 - 40, s2_y0 - 42, s2_x0 + 275, s2_y0 - 4], fill=(127, 29, 29, 240), outline=(248, 113, 113, 255), width=2)
     draw.text(
         (s2_x0 - 34, s2_y0 - 38),

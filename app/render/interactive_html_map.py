@@ -2,8 +2,9 @@
 
 In : FleetSummary (20 Indian offshore rigs, 120 candidate wells, 48h weather, storm cones, waypoints).
 Out: Self-contained HTML5 string + optional GCS upload (`gs://zuhaibp-ai-agent-staging/interactive_maps/...`)
-     allowing users in Gemini Enterprise, ADK Playground, or `adk web` to interactively zoom, pan,
-     and hover over every rig, well, storm cone, and Monte Carlo waypoint.
+     featuring GEBCO/NOAA Bathymetric Ocean + Esri Satellite/Dark Basemaps, Numbered Rig Badges [1]–[6],
+     Animated Green Escape Routes (Origin Red ● -> Target Safe Green ◆), Visual Symbol Legend, and
+     Click-to-Fly Relocation Index Table.
 """
 
 from __future__ import annotations
@@ -15,39 +16,44 @@ from pathlib import Path
 
 try:
     from app.contracts import FleetSummary
+    from app.render.india_map_png import _get_six_relocation_rows
     from app.render.rig_map_vega import build_rig_fleet_map_spec
 except ImportError:
     from contracts import FleetSummary
+    from render.india_map_png import _get_six_relocation_rows
     from render.rig_map_vega import build_rig_fleet_map_spec
 
 logger = logging.getLogger(__name__)
 
 
 def build_interactive_india_eez_html(summary: FleetSummary) -> str:
-    """Build a standalone interactive HTML5/JS (Leaflet + Vega-Lite) map of India's EEZ."""
+    """Build a standalone interactive HTML5/JS (Leaflet + Vega-Lite) map of India's EEZ with Click-to-Fly Relocation Index."""
     vega_spec = build_rig_fleet_map_spec(summary)
-    # Widen the Vega spec for standalone browser viewing while keeping embedded spec compact
     standalone_spec = json.loads(json.dumps(vega_spec))
     if "vconcat" in standalone_spec and len(standalone_spec["vconcat"]) >= 2:
-        standalone_spec["vconcat"][0]["width"] = 920
-        standalone_spec["vconcat"][0]["height"] = 520
-        standalone_spec["vconcat"][1]["width"] = 920
-        standalone_spec["vconcat"][1]["height"] = 210
+        standalone_spec["vconcat"][0]["width"] = 680
+        standalone_spec["vconcat"][0]["height"] = 320
+        standalone_spec["vconcat"][1]["width"] = 680
+        standalone_spec["vconcat"][1]["height"] = 150
+
+    relocations_js = _get_six_relocation_rows()
+    idx_by_rig_id = {r["rig_id"]: r for r in relocations_js}
 
     rigs_js = []
     for r in summary.rigs:
         t = r.telemetry
+        rel = idx_by_rig_id.get(r.rig_id)
         rigs_js.append({
             "rig_id": r.rig_id,
             "rig_name": r.rig_name,
             "operator": r.operator,
             "rig_type": r.rig_type.ormwo_label,
             "status": r.status.value,
-            "lat": r.location.latitude,
-            "lon": r.location.longitude,
+            "lat": rel["orig_lat"] if rel else r.location.latitude,
+            "lon": rel["orig_lon"] if rel else r.location.longitude,
             "basin": r.location.basin_name,
             "block_id": r.location.block_id,
-            "well_name": r.current_well_name,
+            "well_name": rel["orig_well"] if rel else r.current_well_name,
             "water_depth_m": r.location.water_depth_m,
             "measured_depth_m": t.measured_depth_m if t else 0.0,
             "target_depth_m": r.target_depth_m,
@@ -56,7 +62,13 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
             "torque_kft_lbs": t.torque_kft_lbs if t else 0.0,
             "spp_psi": t.standpipe_pressure_psi if t else 0.0,
             "daily_cost_cr": round(r.daily_operating_cost_inr / 10_000_000.0, 2),
-            "is_selected": r.rig_id == (summary.selected_rig_id or "RIG-OFFSHORE-04"),
+            "badge_idx": rel["idx"] if rel else None,
+            "dest_well": rel["dest_well"] if rel else None,
+            "dest_lat": rel["dest_lat"] if rel else None,
+            "dest_lon": rel["dest_lon"] if rel else None,
+            "dist_nm": rel["dist_nm"] if rel else None,
+            "transit_hrs": rel["transit_hrs"] if rel else None,
+            "savings_cr": rel["savings_cr"] if rel else None,
         })
 
     wells_js = []
@@ -74,20 +86,12 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
         })
 
     storms_js = summary.active_storm_zones or []
-    sim = summary.transit_simulations[0] if summary.transit_simulations else None
-    waypoints_js = []
-    if sim and sim.optimal_routing_waypoints:
-        for idx, wp in enumerate(sim.optimal_routing_waypoints):
-            if isinstance(wp, dict):
-                waypoints_js.append([float(wp["lat"]), float(wp["lon"]), f"WP-{idx}"])
-            else:
-                waypoints_js.append([float(wp[0]), float(wp[1]), f"WP-{idx}"])
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>ORMWO — Interactive India EEZ Rig & Metocean Command Map</title>
+  <title>ORMWO — Google DeepMind GenCast & GraphCast 48h Storm & Safe-Well Relocation Command Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -96,33 +100,59 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
   <style>
     body {{
-      margin: 0; padding: 0; background: #0b1221; color: #f8fafc;
+      margin: 0; padding: 0; background: #070e1b; color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }}
     header {{
       display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 24px; background: #0f172a; border-bottom: 1px solid #1e293b;
+      padding: 10px 22px; background: linear-gradient(90deg, #0f172a 0%, #172554 100%);
+      border-bottom: 2px solid #38bdf8;
     }}
     .title-group h1 {{ margin: 0; font-size: 16px; color: #f8fafc; letter-spacing: 0.4px; }}
-    .title-group p {{ margin: 4px 0 0; font-size: 12px; color: #38bdf8; }}
+    .title-group p {{ margin: 4px 0 0; font-size: 12px; color: #7dd3fc; }}
     .grid {{
-      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; padding: 16px;
-      height: calc(100vh - 76px); box-sizing: border-box;
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; padding: 12px;
+      height: calc(100vh - 68px); box-sizing: border-box;
     }}
     .panel {{
       background: #0f172a; border: 1px solid #1e3a8a; border-radius: 10px;
       overflow: hidden; display: flex; flex-direction: column;
     }}
     .panel-header {{
-      padding: 10px 14px; background: #1e293b; font-size: 13px; font-weight: 600;
-      color: #e2e8f0; display: flex; justify-content: space-between;
+      padding: 9px 14px; background: #172554; font-size: 13px; font-weight: 700;
+      color: #f8fafc; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #1e3a8a;
     }}
-    #leaflet-map {{ flex: 1; width: 100%; min-height: 480px; background: #091526; }}
-    #vega-container {{ flex: 1; overflow: auto; padding: 10px; background: #ffffff; }}
+    #leaflet-map {{ flex: 1; width: 100%; min-height: 520px; background: #091526; }}
+    .right-scroll {{ flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; }}
+    .legend-grid {{
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      background: #091326; padding: 10px; border-radius: 8px; border: 1px solid #1e3a8a; font-size: 11.5px;
+    }}
+    .legend-item {{ display: flex; align-items: center; gap: 8px; color: #e2e8f0; }}
+    .reloc-table {{
+      width: 100%; border-collapse: collapse; font-size: 11.5px; background: #091326;
+      border-radius: 8px; overflow: hidden; border: 1px solid #1e3a8a;
+    }}
+    .reloc-table th {{
+      background: #1e293b; color: #94a3b8; text-align: left; padding: 6px 8px; font-weight: 700;
+    }}
+    .reloc-table td {{ padding: 6px 8px; border-bottom: 1px solid #1e293b; cursor: pointer; }}
+    .reloc-table tr:hover td {{ background: #172554; }}
+    .badge-num {{
+      display: inline-flex; width: 20px; height: 20px; border-radius: 50%;
+      background: #facc15; color: #0f172a; font-weight: 800; align-items: center; justify-content: center;
+      border: 2px solid #0f172a; box-shadow: 0 0 8px rgba(250,204,21,0.8);
+    }}
+    .safe-diamond {{
+      display: inline-block; width: 10px; height: 10px; background: #10b981;
+      transform: rotate(45deg); border: 1.5px solid #ffffff;
+    }}
+    #vega-container {{ background: #ffffff; border-radius: 8px; padding: 6px; }}
     .leaflet-popup-content-wrapper, .leaflet-tooltip {{
       background: #0f172a !important; color: #f8fafc !important;
       border: 1px solid #38bdf8 !important; border-radius: 8px !important;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.6) !important;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.65) !important;
     }}
     .leaflet-popup-tip {{ background: #0f172a !important; }}
     .popup-table {{ font-size: 12px; border-collapse: collapse; width: 100%; margin-top: 6px; }}
@@ -134,29 +164,50 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
 <body>
   <header>
     <div class="title-group">
-      <h1>OFFSHORE RIG MOBILIZATION & WEATHER OPTIMIZER (ORMWO) — INTERACTIVE INDIA EEZ MAP</h1>
-      <p>Scroll to Zoom · Drag to Pan · Hover Over Any of the 20 Rigs (▲) or 120 Candidate Wells (●) for Live Telemetry & 48h Forecast</p>
+      <h1>ORMWO — GOOGLE DEEPMIND GENCAST & GRAPHCAST 48H STORM FORECAST & SAFE-WELL RELOCATION MAP</h1>
+      <p>2 Active 48h Storm Cones (Red Circles) · 6 Threatened Rigs Indexed [1]–[6] Relocating to Safe Wells (Green ◆) · Total Avoided NPT Savings: ₹25.43 Crore</p>
     </div>
-    <div>
-      <span style="font-size:12px; background:#1e293b; padding:6px 12px; border-radius:6px; border:1px solid #38bdf8;">
-        Audit Ref: {summary.audit_reference_id or 'AUD-ONGC-15117-VERIFIED'}
-      </span>
+    <div style="display:flex; gap:8px;">
+      <button onclick="map.flyTo([19.15, 71.55], 8)" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">Zoom: Mumbai High [1]–[4]</button>
+      <button onclick="map.flyTo([16.10, 82.35], 8)" style="background:#f59e0b; color:#0f172a; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">Zoom: KG-DWN Basin [5]–[6]</button>
+      <button onclick="map.flyTo([16.5, 77.5], 5)" style="background:#38bdf8; color:#0f172a; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">Reset Full India EEZ</button>
     </div>
   </header>
   <div class="grid">
     <div class="panel">
       <div class="panel-header">
-        <span>Interactive Geospatial Map (Leaflet.js — Hover & Click Any Rig, Well, or Storm Cone)</span>
-        <span style="color:#4ade80;">20 Rigs · 120 Pinpoint Wells</span>
+        <span>Interactive Bathymetric & Satellite Command Map (Click Any Rig [1]–[6], Red Storm Circle, or Safe Well ◆)</span>
+        <span style="color:#4ade80;">GEBCO Hydrography + Esri Satellite</span>
       </div>
       <div id="leaflet-map"></div>
     </div>
     <div class="panel">
       <div class="panel-header">
-        <span>Synchronized Vega-Lite v5 Cartographic & 48h Metocean Forecast (Scroll-Zoom Enabled)</span>
-        <span style="color:#38bdf8;">A2UI v0.9 Spec</span>
+        <span>Visual Symbol Legend & Click-to-Fly Relocation Index [1]–[6]</span>
+        <span style="color:#facc15;">Save ₹25.43 Crore NPT</span>
       </div>
-      <div id="vega-container"></div>
+      <div class="right-scroll">
+        <div class="legend-grid">
+          <div class="legend-item"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(239,68,68,0.45);border:2px dashed #ef4444;"></span> <b>Red Dashed Circle:</b> 48h Storm Cone (DO NOT DRILL)</div>
+          <div class="legend-item"><span class="badge-num">1</span> <b>Yellow Badge [1]–[6]:</b> Threatened Rig Origin</div>
+          <div class="legend-item"><span style="color:#22c55e;font-weight:900;">━━➤</span> <b>Green Dashed Route:</b> Zero-Downtime Escape Path</div>
+          <div class="legend-item"><span class="safe-diamond"></span> <b>Green Diamond (◆):</b> Safe Target Well (Hs &lt; 1.5m)</div>
+        </div>
+        <table class="reloc-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Rig ID & Name</th>
+              <th>Origin Storm Well (🔴)</th>
+              <th>Safe Target Well (🟢 ◆)</th>
+              <th>Transit</th>
+              <th>NPT Saved</th>
+            </tr>
+          </thead>
+          <tbody id="reloc-tbody"></tbody>
+        </table>
+        <div id="vega-container"></div>
+      </div>
     </div>
   </div>
 
@@ -164,27 +215,28 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
     const RIGS = {json.dumps(rigs_js)};
     const WELLS = {json.dumps(wells_js)};
     const STORMS = {json.dumps(storms_js)};
-    const WAYPOINTS = {json.dumps(waypoints_js)};
+    const RELOCATIONS = {json.dumps(relocations_js)};
     const VEGA_SPEC = {json.dumps(standalone_spec)};
 
-    // 1. Initialize Interactive Leaflet Map (Zero-API-Key Esri Dark Gray, Ocean, Satellite & OpenStreetMap Basemaps)
-    const map = L.map('leaflet-map', {{ center: [16.8, 77.5], zoom: 5 }});
-    const darkOceanLayer = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
-        attribution: 'Esri, HERE, Garmin, NOAA — India EEZ ORMWO',
+    // 1. Initialize Leaflet Map with Rich Bathymetric Ocean Map as Default + Dark & Satellite Layers
+    const map = L.map('leaflet-map', {{ center: [16.8, 77.2], zoom: 5 }});
+
+    const hydroOceanLayer = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        attribution: 'Esri, GEBCO, NOAA, National Geographic — India EEZ Bathymetry',
         maxZoom: 16
       }}),
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
         maxZoom: 16
       }})
     ]).addTo(map);
 
-    const hydroOceanLayer = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
-        attribution: 'Esri, GEBCO, NOAA, National Geographic — India EEZ Hydrography',
+    const darkOceanLayer = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+        attribution: 'Esri Dark Tactical Command — India EEZ ORMWO',
         maxZoom: 16
       }}),
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
         maxZoom: 16
       }})
     ]);
@@ -194,20 +246,14 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
       maxZoom: 18
     }});
 
-    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19
-    }});
-
     L.control.layers({{
-      "Dark Tactical Command (Esri)": darkOceanLayer,
       "Bathymetric Ocean Map (GEBCO/NOAA)": hydroOceanLayer,
-      "Satellite Imagery (Esri)": satelliteLayer,
-      "OpenStreetMap Standard": osmLayer
+      "Dark Tactical Command (Esri)": darkOceanLayer,
+      "Satellite Imagery (Esri)": satelliteLayer
     }}, null, {{ position: 'topright' }}).addTo(map);
 
-    // 2. Render 48-Hour Google WeatherNext (GenCast / GraphCast) Storm Hazard Cones
-    STORMS.forEach(st => {{
+    // 2. Render 48-Hour Storm Hazard Cones (Red Circles)
+    STORMS.forEach((st, sIdx) => {{
       const sLat = st.center_lat !== undefined ? st.center_lat : st.latitude;
       const sLon = st.center_lon !== undefined ? st.center_lon : st.longitude;
       const sName = st.name || st.storm_name || st.storm_id || 'Cyclonic Storm Zone';
@@ -217,102 +263,89 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
       if (sLat === undefined || sLon === undefined) return;
       const circle = L.circle([sLat, sLon], {{
         radius: (st.radius_deg || 1.15) * 111000,
-        color: '#ef4444',
-        weight: 2.5,
-        dashArray: '6,4',
+        color: '#dc2626',
+        weight: 3,
+        dashArray: '8,5',
         fillColor: '#ef4444',
-        fillOpacity: 0.24
+        fillOpacity: 0.28
       }}).addTo(map);
       circle.bindTooltip(
-        `<div class="tooltip-card">` +
-        `<div class="tooltip-title" style="color:#f87171;">⚠️ GOOGLE WEATHERNEXT (GENCAST/GRAPHCAST) 48H STORM CONE</div>` +
-        `<table class="tooltip-grid">` +
-        `<tr><td class="k">Storm System</td><td class="v">${{sName}}</td></tr>` +
-        `<tr><td class="k">Affected Basin</td><td class="v">${{sBasin}}</td></tr>` +
-        `<tr><td class="k">Center Coord</td><td class="v">${{sLat.toFixed(2)}}°N, ${{sLon.toFixed(2)}}°E</td></tr>` +
-        `<tr><td class="k">Peak Wave (Hs)</td><td class="v" style="color:#f87171;">${{sHs}} m (&gt;2.5m Latch Limit)</td></tr>` +
-        `<tr><td class="k">Peak Sustained Wind</td><td class="v" style="color:#f87171;">${{sWind}} knots (&gt;35kt Limit)</td></tr>` +
-        `<tr><td class="k">Action</td><td class="v" style="color:#fbbf24;">DO NOT DRILL — Relocate Rigs to Nearby Safe Green Wells</td></tr>` +
-        `</table></div>`,
-        {{ sticky: true, opacity: 0.98 }}
+        `<div style="font-weight:700;color:#fca5a5;">🔴 RED CIRCLE ${{sIdx + 1}}: ${{sName}}</div>` +
+        `<div>Basin: <b>${{sBasin}}</b> | Peak Wave: <b>Hs=${{sHs}}m</b> | Wind: <b>${{sWind}}kt</b></div>` +
+        `<div style="color:#fde047;">STORM_LOCKED — DO NOT DRILL (Relocate Rigs [1]–[6] to Safe Green Wells)</div>`,
+        {{ sticky: true }}
       );
     }});
 
-    // 3. Render 120 Candidate & Active Offshore Wells with Hover Tooltips
+    // 3. Render Background 120 Wells
     WELLS.forEach(w => {{
       const isSafe = w.status.includes('SAFE');
       const isStorm = w.status.includes('STORM');
       const color = isSafe ? '#10b981' : (isStorm ? '#ef4444' : '#38bdf8');
-      const marker = L.circleMarker([w.lat, w.lon], {{
-        radius: 4.5,
-        color: '#0f172a',
-        weight: 1,
-        fillColor: color,
-        fillOpacity: 0.9
-      }}).addTo(map);
-
-      const html = `
-        <div style="min-width:210px;">
-          <div style="font-weight:700; color:${{color}}; border-bottom:1px solid #334155; padding-bottom:4px;">
-            WELL: ${{w.well_id}} (${{w.status}})
-          </div>
-          <table class="popup-table">
-            <tr><td class="k">Basin</td><td class="v">${{w.basin}}</td></tr>
-            <tr><td class="k">Coordinates</td><td class="v">${{w.lat.toFixed(4)}}°N, ${{w.lon.toFixed(4)}}°E</td></tr>
-            <tr><td class="k">Water Depth</td><td class="v">${{w.water_depth_m}} m</td></tr>
-            <tr><td class="k">48h Peak Wave Hs</td><td class="v">${{w.peak_hs_m}} m</td></tr>
-            <tr><td class="k">48h Peak Wind</td><td class="v">${{w.peak_wind_kts}} kts</td></tr>
-          </table>
-        </div>`;
-      marker.bindTooltip(html, {{ direction: 'top', opacity: 0.97 }});
-      marker.bindPopup(html);
+      L.circleMarker([w.lat, w.lon], {{
+        radius: 3.5, color: '#0f172a', weight: 1, fillColor: color, fillOpacity: 0.8
+      }}).addTo(map).bindTooltip(`<b>Well ${{w.well_id}}</b> (${{w.status}}) — Hs=${{w.peak_hs_m}}m`);
     }});
 
-    // 4. Render Monte Carlo Optimal Redeployment Waypoints
-    if (WAYPOINTS.length > 1) {{
-      const latlngs = WAYPOINTS.map(pt => [pt[0], pt[1]]);
-      L.polyline(latlngs, {{ color: '#22c55e', weight: 3.5, dashArray: '8,4' }}).addTo(map);
-      WAYPOINTS.forEach((pt, idx) => {{
-        L.circleMarker([pt[0], pt[1]], {{
-          radius: 6, color: '#ffffff', weight: 1.5, fillColor: '#22c55e', fillOpacity: 1.0
-        }}).addTo(map).bindTooltip(`<b>Monte Carlo Waypoint ${{pt[2]}}</b><br/>Lat: ${{pt[0].toFixed(4)}}°N, Lon: ${{pt[1].toFixed(4)}}°E`);
+    // 4. Render the 6 Indexed Storm Relocations ([1]..[6]): Origin Badge + Green Dashed Route + Safe Diamond Target
+    const tbody = document.getElementById('reloc-tbody');
+    RELOCATIONS.forEach(rel => {{
+      // Green Escape Polyline
+      L.polyline([[rel.orig_lat, rel.orig_lon], [rel.dest_lat, rel.dest_lon]], {{
+        color: '#22c55e', weight: 4, dashArray: '7,4'
+      }}).addTo(map).bindTooltip(
+        `<b>🟢 Escape Route [${{rel.idx}}]: ${{rel.rig_name}}</b><br/>` +
+        `From Storm Well <b>${{rel.orig_well}}</b> ➔ Safe Well <b>${{rel.dest_well}}</b> (${{rel.dist_nm}} NM / ${{rel.transit_hrs}}h)`
+      );
+
+      // Safe Target Well Green Diamond Marker
+      const destIcon = L.divIcon({{
+        className: '',
+        html: `<div style="width:14px;height:14px;background:#10b981;transform:rotate(45deg);border:2px solid #fff;box-shadow:0 0 8px #10b981;"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
       }});
-    }}
+      L.marker([rel.dest_lat, rel.dest_lon], {{ icon: destIcon }}).addTo(map).bindTooltip(
+        `<b>🟢 SAFE TARGET WELL: ${{rel.dest_well}} (For Rig [${{rel.idx}}] ${{rel.rig_name}})</b><br/>` +
+        `Coords: ${{rel.dest_lat.toFixed(2)}}°N, ${{rel.dest_lon.toFixed(2)}}°E | Calm Wave: Hs=${{rel.safe_hs}}m | Avoided NPT: ₹${{rel.savings_cr}} Cr`
+      );
 
-    // 5. Render 20 Offshore Drilling Rigs with Full Live Telemetry Hover Cards
-    RIGS.forEach(r => {{
-      const fill = r.is_selected ? '#facc15' : '#3b82f6';
-      const radius = r.is_selected ? 9 : 7;
-      const rigMarker = L.circleMarker([r.lat, r.lon], {{
-        radius: radius,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: fill,
-        fillOpacity: 1.0
-      }}).addTo(map);
+      // Origin Numbered Rig Badge Marker
+      const origIcon = L.divIcon({{
+        className: '',
+        html: `<div class="badge-num">${{rel.idx}}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      }});
+      L.marker([rel.orig_lat, rel.orig_lon], {{ icon: origIcon }}).addTo(map).bindTooltip(
+        `<b>🟡 [${{rel.idx}}] ${{rel.rig_id}} — ${{rel.rig_name}} (${{rel.hull}})</b><br/>` +
+        `🔴 Origin Storm-Locked Well: <b>${{rel.orig_well}}</b> (Hs=${{rel.storm_hs}}m, ${{rel.storm_wind}}kt)<br/>` +
+        `🟢 Relocate <b>${{rel.dist_nm}} NM (${{rel.transit_hrs}}h)</b> ➔ <b>${{rel.dest_well}}</b> (Save ₹${{rel.savings_cr}} Cr)`
+      );
 
-      const html = `
-        <div style="min-width:245px;">
-          <div style="font-weight:700; color:#facc15; border-bottom:1px solid #334155; padding-bottom:4px;">
-            ${{r.rig_id}} — ${{r.rig_name}} (${{r.rig_type}})
-          </div>
-          <table class="popup-table">
-            <tr><td class="k">Operator / Status</td><td class="v">${{r.operator}} · ${{r.status}}</td></tr>
-            <tr><td class="k">Basin / Block</td><td class="v">${{r.basin}} (${{r.block_id}})</td></tr>
-            <tr><td class="k">Coordinates</td><td class="v">${{r.lat.toFixed(4)}}°N, ${{r.lon.toFixed(4)}}°E</td></tr>
-            <tr><td class="k">Current Well</td><td class="v">${{r.well_name}}</td></tr>
-            <tr><td class="k">Drilling Depth</td><td class="v">${{r.measured_depth_m}}m / ${{r.target_depth_m}}m</td></tr>
-            <tr><td class="k">ROP / Rotary RPM</td><td class="v">${{r.rop_m_hr}} m/hr · ${{r.rpm}} RPM</td></tr>
-            <tr><td class="k">Torque / SPP</td><td class="v">${{r.torque_kft_lbs}} kft-lb · ${{r.spp_psi}} psi</td></tr>
-            <tr><td class="k">Rig Burn Rate</td><td class="v" style="color:#f87171;">₹${{r.daily_cost_cr}} Cr / day</td></tr>
-          </table>
-        </div>`;
-      rigMarker.bindTooltip(html, {{ direction: 'top', opacity: 0.98 }});
-      rigMarker.bindPopup(html);
+      // Add Row to Click-to-Fly Table
+      const tr = document.createElement('tr');
+      tr.onclick = () => map.flyTo([rel.orig_lat, rel.orig_lon], 9);
+      tr.innerHTML = `
+        <td><span class="badge-num">${{rel.idx}}</span></td>
+        <td><b>${{rel.rig_name}}</b><br/><span style="color:#94a3b8;font-size:10px;">${{rel.rig_id}}</span></td>
+        <td style="color:#fca5a5;">🔴 ${{rel.orig_well}}<br/><span style="font-size:10px;">Hs=${{rel.storm_hs}}m</span></td>
+        <td style="color:#4ade80;">🟢 ◆ <b>${{rel.dest_well}}</b><br/><span style="font-size:10px;">Hs=${{rel.safe_hs}}m</span></td>
+        <td style="color:#38bdf8;"><b>${{rel.dist_nm}} NM</b><br/><span style="font-size:10px;">${{rel.transit_hrs}} hrs</span></td>
+        <td style="color:#facc15;font-weight:700;">₹${{rel.savings_cr}} Cr</td>
+      `;
+      tbody.appendChild(tr);
     }});
 
-    // 6. Embed Interactive Vega-Lite v5 Chart
-    vegaEmbed('#vega-container', VEGA_SPEC, {{ actions: true, renderer: 'canvas' }});
+    // 5. Render Safe Operating Rigs (Blue Markers)
+    RIGS.filter(r => !r.badge_idx).forEach(r => {{
+      L.circleMarker([r.lat, r.lon], {{
+        radius: 6, color: '#ffffff', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 1.0
+      }}).addTo(map).bindTooltip(`<b>🔵 ${{r.rig_id}} — ${{r.rig_name}}</b> (Safe Basin: ${{r.basin}})`);
+    }});
+
+    // 6. Embed Synchronized Vega-Lite v5 Chart
+    vegaEmbed('#vega-container', VEGA_SPEC, {{ actions: false, renderer: 'canvas' }});
   </script>
 </body>
 </html>"""
@@ -361,4 +394,3 @@ def publish_interactive_html_map(summary: FleetSummary, surface_id: str) -> tupl
 
     threading.Thread(target=_async_upload, daemon=True).start()
     return str(local_path), cloud_console_url
-
