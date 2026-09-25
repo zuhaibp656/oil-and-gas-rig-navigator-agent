@@ -100,109 +100,128 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
   <style>
     body {{
-      margin: 0; padding: 0; background: #070e1b; color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 0; background: #f8fafc; color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Google Sans", sans-serif;
     }}
     header {{
       display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 22px; background: linear-gradient(90deg, #0f172a 0%, #172554 100%);
-      border-bottom: 2px solid #38bdf8;
+      padding: 12px 24px; background: #ffffff;
+      border-bottom: 1px solid #cbd5e1;
+      border-top: 4px solid #1a73e8;
     }}
-    .title-group h1 {{ margin: 0; font-size: 16px; color: #f8fafc; letter-spacing: 0.4px; }}
-    .title-group p {{ margin: 4px 0 0; font-size: 12px; color: #7dd3fc; }}
+    .title-group h1 {{ margin: 0; font-size: 16px; color: #0f172a; font-weight: 700; letter-spacing: 0.2px; }}
+    .title-group p {{ margin: 4px 0 0; font-size: 12px; color: #475569; }}
     .grid {{
-      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; padding: 12px;
-      height: calc(100vh - 68px); box-sizing: border-box;
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; padding: 14px;
+      height: calc(100vh - 72px); box-sizing: border-box;
     }}
     .panel {{
-      background: #0f172a; border: 1px solid #1e3a8a; border-radius: 10px;
+      background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;
       overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }}
     .panel-header {{
-      padding: 9px 14px; background: #172554; font-size: 13px; font-weight: 700;
-      color: #f8fafc; display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #1e3a8a;
+      padding: 10px 16px; background: #f8fafc; font-size: 13px; font-weight: 700;
+      color: #0f172a; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #e2e8f0;
     }}
-    #leaflet-map {{ flex: 1; width: 100%; min-height: 520px; background: #091526; }}
-    .right-scroll {{ flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; }}
+    #leaflet-map {{ flex: 1; width: 100%; min-height: 520px; background: #f1f5f9; }}
+    .right-scroll {{ flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }}
     .legend-grid {{
-      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
-      background: #091326; padding: 10px; border-radius: 8px; border: 1px solid #1e3a8a; font-size: 11.5px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 11.5px;
     }}
-    .legend-item {{ display: flex; align-items: center; gap: 8px; color: #e2e8f0; }}
+    .legend-item {{ display: flex; align-items: center; gap: 8px; color: #334155; }}
     .reloc-table {{
-      width: 100%; border-collapse: collapse; font-size: 11.5px; background: #091326;
-      border-radius: 8px; overflow: hidden; border: 1px solid #1e3a8a;
+      width: 100%; border-collapse: collapse; font-size: 11.5px; background: #ffffff;
+      border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;
     }}
     .reloc-table th {{
-      background: #1e293b; color: #94a3b8; text-align: left; padding: 6px 8px; font-weight: 700;
+      background: #f1f5f9; color: #475569; text-align: left; padding: 8px 10px; font-weight: 700;
+      border-bottom: 1px solid #cbd5e1;
     }}
-    .reloc-table td {{ padding: 6px 8px; border-bottom: 1px solid #1e293b; cursor: pointer; }}
-    .reloc-table tr:hover td {{ background: #172554; }}
+    .reloc-table td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; cursor: pointer; color: #0f172a; }}
+    .reloc-table tr:hover td {{ background: #f8fafc; }}
     .badge-num {{
-      display: inline-flex; width: 20px; height: 20px; border-radius: 50%;
-      background: #facc15; color: #0f172a; font-weight: 800; align-items: center; justify-content: center;
-      border: 2px solid #0f172a; box-shadow: 0 0 8px rgba(250,204,21,0.8);
+      display: inline-flex; width: 22px; height: 22px; border-radius: 50%;
+      background: #ffffff; color: #0f172a; font-weight: 800; align-items: center; justify-content: center;
+      border: 2px solid #16a34a; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }}
+    .badge-num.red {{
+      border-color: #dc2626; color: #0f172a;
     }}
     .safe-diamond {{
-      display: inline-block; width: 10px; height: 10px; background: #10b981;
+      display: inline-block; width: 10px; height: 10px; background: #16a34a;
       transform: rotate(45deg); border: 1.5px solid #ffffff;
     }}
-    #vega-container {{ background: #ffffff; border-radius: 8px; padding: 6px; }}
+    #vega-container {{ background: #ffffff; border-radius: 8px; padding: 6px; border: 1px solid #e2e8f0; }}
     .leaflet-popup-content-wrapper, .leaflet-tooltip {{
-      background: #0f172a !important; color: #f8fafc !important;
-      border: 1px solid #38bdf8 !important; border-radius: 8px !important;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.65) !important;
+      background: #ffffff !important; color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important; border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
     }}
-    .leaflet-popup-tip {{ background: #0f172a !important; }}
+    .leaflet-popup-tip {{ background: #ffffff !important; }}
     .popup-table {{ font-size: 12px; border-collapse: collapse; width: 100%; margin-top: 6px; }}
-    .popup-table td {{ padding: 3px 6px; border-bottom: 1px solid #1e293b; }}
-    .popup-table td.k {{ color: #94a3b8; }}
-    .popup-table td.v {{ color: #f8fafc; font-weight: 600; text-align: right; }}
+    .popup-table td {{ padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }}
+    .popup-table td.k {{ color: #64748b; }}
+    .popup-table td.v {{ color: #0f172a; font-weight: 600; text-align: right; }}
+    .btn-nav {{
+      background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;
+      padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;
+      transition: all 0.15s ease;
+    }}
+    .btn-nav:hover {{ background: #f1f5f9; border-color: #94a3b8; }}
+    .btn-action {{
+      background: #1a73e8; color: #ffffff; border: none;
+      padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }}
+    .btn-action:hover {{ background: #1557b0; }}
   </style>
 </head>
 <body>
   <header>
     <div class="title-group">
-      <h1>ORMWO — LIVE METOCEAN TELEMETRY, MWS RIG-MOVE WINDOW & BAY OF BENGAL STORM EVACUATION COMMAND MAP</h1>
-      <p>🟢 Western Offshore: Calm MWS Window (Live Hs=1.22m <= 1.5m — Move Completed Rigs [1]–[4]) · 🔴 Bay of Bengal: Live Swell Lock (Hs=2.80m–4.98m — Hang Off Well & Evacuate Crew [5]–[6] 🚁)</p>
+      <h1>ORMWO — INDIA EEZ OFFSHORE COMMAND & LIVE METOCEAN MAP</h1>
+      <p>🟢 Western Offshore: Calm MWS Window (Live Hs=0.78-1.22m <= 1.5m — Move Rigs [1]–[4]) · 🔴 Bay of Bengal: Cyclonic Swell Lock (Hs=2.80m–4.98m — Hang Off Well & Evacuate Crew [5]–[6])</p>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-      <a href="india_eez_rig_move_sop_latest.html" target="_blank" style="background:#facc15; color:#0f172a; text-decoration:none; padding:6px 12px; border-radius:6px; font-weight:800; font-size:12px;">📋 Open Rig-Move & Evacuation SOP Guidelines ↗</a>
-      <button onclick="map.flyTo([19.25, 71.55], 8)" style="background:#10b981; color:#0f172a; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">🟢 Zoom: Mumbai High Moves [1]–[4]</button>
-      <button onclick="map.flyTo([18.10, 84.40], 6)" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">🔴 Zoom: Bay of Bengal Swell & Evac [5]–[6]</button>
-      <button onclick="map.flyTo([16.5, 77.5], 5)" style="background:#38bdf8; color:#0f172a; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">Reset Full India EEZ</button>
+      <a href="ormwo_executive_presentation.html" target="_blank" class="btn-action">📑 Executive Deck ↗</a>
+      <a href="india_eez_rig_move_sop_latest.html" target="_blank" class="btn-nav">📋 Engineering SOP ↗</a>
+      <button onclick="map.flyTo([19.25, 71.55], 8)" class="btn-nav">🟢 Zoom: Mumbai High [1]–[4]</button>
+      <button onclick="map.flyTo([18.10, 84.40], 6)" class="btn-nav">🔴 Zoom: Bay of Bengal [5]–[6]</button>
+      <button onclick="map.flyTo([16.5, 77.5], 5)" class="btn-nav">Reset India EEZ</button>
     </div>
   </header>
   <div class="grid">
     <div class="panel">
       <div class="panel-header">
-        <span>Interactive Bathymetric & Satellite Command Map (🟢 Green Circle = MWS Rig-Move Window | 🔴 Red Circle = Live Swell Lock)</span>
-        <span style="color:#4ade80;">Live Open-Meteo Telemetry + GEBCO Hydrography</span>
+        <span>Interactive Bathymetric & Satellite Command Map (🟢 Calm MWS Window | 🔴 Cyclonic Swell Lock)</span>
+        <span style="color:#16a34a; font-weight:600;">Live Open-Meteo Telemetry</span>
       </div>
       <div id="leaflet-map"></div>
     </div>
     <div class="panel">
       <div class="panel-header">
-        <span>Click-to-Fly Operational Directives [1]–[6] (CAG Audit #15117 & MWS Compliance)</span>
-        <span style="color:#facc15;">Total Avoided NPT: ₹71.50 Cr</span>
+        <span>Tactical Mobilization Directives [1]–[6] (CAG Audit #15117 & MWS Compliance)</span>
+        <span style="color:#0369a1; font-weight:700;">Avoided NPT: ₹71.50 Cr</span>
       </div>
       <div class="right-scroll">
         <div class="legend-grid">
-          <div class="legend-item"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(16,185,129,0.35);border:2px dashed #10b981;"></span> <b>Green Circle (West):</b> Calm MWS Window (Hs &lt;= 1.5m — Rig Move Go)</div>
-          <div class="legend-item"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(239,68,68,0.45);border:2px dashed #ef4444;"></span> <b>Red Circle (East):</b> Live Swell Lock (Hs &gt; 2.5m — Hang Off &amp; Evac 🚁)</div>
-          <div class="legend-item"><span style="color:#22c55e;font-weight:900;">━━➤</span> <b>Green Arrow [1]–[4]:</b> Wet Tow to Closest EC-Cleared Well</div>
-          <div class="legend-item"><span style="color:#f59e0b;font-weight:900;">━━➤ 🚁</span> <b>Amber Arrow [5]–[6]:</b> Helibase Crew Evacuation + DP3 Hold</div>
+          <div class="legend-item"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(34,197,94,0.18);border:2px dashed #16a34a;"></span> <b>Green Window (West):</b> Calm MWS (Hs &lt;= 1.5m — Rig Move)</div>
+          <div class="legend-item"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(239,68,68,0.18);border:2px dashed #dc2626;"></span> <b>Red Circle (East):</b> Swell Lock (Hs &gt; 2.5m — Hang Off &amp; Evac)</div>
+          <div class="legend-item"><span style="color:#16a34a;font-weight:900;">━━➤</span> <b>Green Arrow [1]–[4]:</b> Wet Tow to EC-Cleared Well</div>
+          <div class="legend-item"><span style="color:#dc2626;font-weight:900;">━━➤</span> <b>Red Arrow [5]–[6]:</b> Helibase Crew Evacuation + DP3 Hold</div>
         </div>
         <table class="reloc-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Rig & Current Well Status</th>
+              <th>Rig & Current Well</th>
               <th>Origin (Live Hs)</th>
-              <th>Target Well / 🚁 Shore Base</th>
-              <th>Move / Flight</th>
-              <th>Saved</th>
+              <th>Target Well / Shore Base</th>
+              <th>Transit Corridor</th>
+              <th>Avoided NPT</th>
             </tr>
           </thead>
           <tbody id="reloc-tbody"></tbody>
@@ -219,25 +238,20 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
     const RELOCATIONS = {json.dumps(relocations_js)};
     const VEGA_SPEC = {json.dumps(standalone_spec)};
 
-    // 1. Initialize Leaflet Map with Rich Bathymetric Ocean Map as Default + Dark & Satellite Layers
+    // 1. Initialize Leaflet Map with Light Positron Basemap as Default + GEBCO Bathymetric & Satellite Layers
     const map = L.map('leaflet-map', {{ center: [16.8, 77.2], zoom: 5 }});
+
+    const lightPositron = L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+      attribution: '© OpenStreetMap contributors © CARTO — India EEZ',
+      maxZoom: 19
+    }}).addTo(map);
 
     const hydroOceanLayer = L.layerGroup([
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
-        attribution: 'Esri, GEBCO, NOAA, National Geographic — India EEZ Bathymetry',
+        attribution: 'Esri, GEBCO, NOAA — India EEZ Bathymetry',
         maxZoom: 16
       }}),
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
-        maxZoom: 16
-      }})
-    ]).addTo(map);
-
-    const darkOceanLayer = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
-        attribution: 'Esri Dark Tactical Command — India EEZ ORMWO',
-        maxZoom: 16
-      }}),
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{{z}}/{{y}}/{{x}}', {{
         maxZoom: 16
       }})
     ]);
@@ -248,8 +262,8 @@ def build_interactive_india_eez_html(summary: FleetSummary) -> str:
     }});
 
     L.control.layers({{
+      "Light Minimalist Map (CartoDB)": lightPositron,
       "Bathymetric Ocean Map (GEBCO/NOAA)": hydroOceanLayer,
-      "Dark Tactical Command (Esri)": darkOceanLayer,
       "Satellite Imagery (Esri)": satelliteLayer
     }}, null, {{ position: 'topright' }}).addTo(map);
 

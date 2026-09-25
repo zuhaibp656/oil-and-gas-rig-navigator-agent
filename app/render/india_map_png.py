@@ -13,13 +13,14 @@ from __future__ import annotations
 import io
 import math
 from typing import Any
+
 from PIL import Image, ImageDraw, ImageFont
 
 try:
-    from app.contracts import FleetSummary, RigOperationalStatus, WellReadinessStatus
+    from app.contracts import FleetSummary, WellReadinessStatus
     from app.rigs.india_eez_dataset import INDIA_MAINLAND_POLYGON, SRI_LANKA_POLYGON
 except ImportError:
-    from contracts import FleetSummary, RigOperationalStatus, WellReadinessStatus
+    from contracts import FleetSummary, WellReadinessStatus
     from rigs.india_eez_dataset import INDIA_MAINLAND_POLYGON, SRI_LANKA_POLYGON
 
 
@@ -93,393 +94,330 @@ def _get_six_relocation_rows() -> list[dict[str, Any]]:
 
 
 def render_india_eez_map_png(summary: FleetSummary) -> bytes:
-    """Render the 1680x1080 4-Panel Tactical Infographic with India EEZ Map, Zoomed Escape Insets, Legend & Relocation Index Table."""
+    """Render the 1680x1080 Minimalist Tactical Infographic using the Google Cloud Light Theme."""
     W, H = 1680, 1080
-    img = Image.new("RGB", (W, H), (9, 15, 28))
+    # Canvas: Google Cloud Slate-50 (#F8FAFC)
+    img = Image.new("RGB", (W, H), (248, 250, 252))
     draw = ImageDraw.Draw(img, "RGBA")
 
-    f_title = _load_font(bold=True, size=19)
-    f_sub = _load_font(bold=True, size=13)
-    f_sec = _load_font(bold=True, size=14)
-    f_bold = _load_font(bold=True, size=12)
-    f_reg = _load_font(bold=False, size=12)
-    f_sm = _load_font(bold=False, size=11)
-    f_badge = _load_font(bold=True, size=11)
+    # Typography
+    f_title = _load_font(bold=True, size=18)
+    f_sub = _load_font(bold=False, size=12)
+    f_sec = _load_font(bold=True, size=13)
+    f_card_title = _load_font(bold=True, size=12)
+    f_bold = _load_font(bold=True, size=11)
+    f_reg = _load_font(bold=False, size=11)
+    f_sm = _load_font(bold=False, size=10)
+    f_badge = _load_font(bold=True, size=10)
 
     relocations = _get_six_relocation_rows()
     total_savings_cr = sum(r["savings_cr"] for r in relocations)
 
     # =========================================================================
-    # TOP HEADER BANNER
+    # 1. TOP HEADER BAR (#FFFFFF Surface with #CBD5E1 Border & Blue Accent Line)
     # =========================================================================
-    draw.rectangle([0, 0, W, 68], fill=(15, 23, 42, 255))
-    draw.line([(0, 68), (W, 68)], fill=(56, 189, 248, 200), width=2)
+    HX0, HY0, HX1, HY1 = 20, 16, 1660, 92
+    draw.rounded_rectangle([HX0, HY0, HX1, HY1], radius=10, fill=(255, 255, 255, 255), outline=(203, 213, 225, 255), width=1)
+    # Google Blue Accent Stripe
+    draw.rounded_rectangle([HX0, HY0, HX1, HY0 + 4], radius=2, fill=(26, 115, 232, 255))
+
+    draw.text((HX0 + 18, HY0 + 16), "ORMWO | OFFSHORE RIG MOBILIZATION & WEATHER COMMAND", fill=(15, 23, 42), font=f_title)
     draw.text(
-        (22, 12),
-        "ORMWO — GOOGLE DEEPMIND GENCAST & GRAPHCAST 48H STORM FORECAST & SAFE-WELL RELOCATION COMMAND MAP",
-        fill=(248, 250, 252),
-        font=f_title,
-    )
-    draw.text(
-        (22, 40),
-        (
-            f"2 Active 48h Storm Cones (Red Circles: Mumbai High Cyclone Hs=4.2m & KG-Basin Swell Hs=3.8m)   •   "
-            f"6 Threatened Rigs Indexed [1]–[6] Relocating to Safe Wells (Green ◆)   •   "
-            f"Total Avoided NPT Saved: INR {total_savings_cr:.2f} Crore"
-        ),
-        fill=(56, 189, 248),
+        (HX0 + 18, HY0 + 44),
+        "Real-Time Live Marine Telemetry (ECMWF WAM / NOAA) • Google WeatherNext 48h Forecast • CAG Performance Audit #15117 Compliance",
+        fill=(71, 85, 105),
         font=f_sub,
     )
 
+    # 3 High-Contrast Header Status Pills (Right-Aligned)
+    pills = [
+        ("CALM MWS WINDOW (Hs <= 1.5m)", (220, 252, 231), (134, 239, 172), (21, 128, 61), (34, 197, 94)),
+        ("SWELL LOCK (Hs > 2.5m)", (254, 226, 226), (252, 165, 165), (185, 28, 28), (239, 68, 68)),
+        (f"AVOIDED NPT: INR {total_savings_cr:.2f} CR", (224, 242, 254), (125, 211, 252), (3, 105, 161), (14, 165, 233)),
+    ]
+    px = HX1 - 18
+    for label, bg_color, border_color, text_color, dot_color in reversed(pills):
+        t_box = draw.textbbox((0, 0), label, font=f_bold)
+        pw = (t_box[2] - t_box[0]) + 34
+        px -= pw
+        draw.rounded_rectangle([px, HY0 + 24, px + pw, HY0 + 52], radius=14, fill=(*bg_color, 255), outline=(*border_color, 255), width=1)
+        # Clean colored indicator circle instead of emoji
+        draw.ellipse([px + 10, HY0 + 34, px + 18, HY0 + 42], fill=(*dot_color, 255))
+        draw.text((px + 24, HY0 + 31), label, fill=text_color, font=f_bold)
+        px -= 12
+
     # =========================================================================
-    # PANEL A (LEFT): FULL INDIA EEZ STRATEGIC MAP (Lon 66E..89E, Lat 5.5N..24N)
+    # 2. LEFT PANEL: THEATER MAP — INDIA EEZ (Width: 895px, Height: 956px)
     # =========================================================================
-    MAP_X0, MAP_Y0, MAP_X1, MAP_Y1 = 18, 80, 770, 730
-    draw.rectangle(
-        [MAP_X0, MAP_Y0, MAP_X1, MAP_Y1],
-        fill=(8, 20, 38, 255),
-        outline=(30, 64, 175, 255),
-        width=2,
-    )
-    draw.rectangle([MAP_X0, MAP_Y0, MAP_X1, MAP_Y0 + 30], fill=(15, 30, 60, 255))
-    draw.text(
-        (MAP_X0 + 12, MAP_Y0 + 7),
-        "PANEL A: INDIA EEZ STRATEGIC MAP — RED STORM CIRCLES vs GREEN SAFE WELL ROUTES [1]–[6]",
-        fill=(226, 232, 240),
-        font=f_sec,
-    )
+    MX0, MY0, MX1, MY1 = 20, 104, 915, 1060
+    draw.rounded_rectangle([MX0, MY0, MX1, MY1], radius=10, fill=(255, 255, 255, 255), outline=(203, 213, 225, 255), width=1)
+
+    # Panel Header Bar
+    draw.text((MX0 + 16, MY0 + 12), "THEATER MAP — INDIA EXCLUSIVE ECONOMIC ZONE (EEZ)", fill=(15, 23, 42), font=f_sec)
+    draw.text((MX0 + 520, MY0 + 14), "20 Offshore Units · 120 Wells · 48h Weather Corridors", fill=(100, 116, 139), font=f_sm)
+    draw.line([(MX0, MY0 + 36), (MX1, MY0 + 36)], fill=(226, 232, 240, 255), width=1)
+
+    # Ocean Map Area
+    MAP_X0, MAP_Y0, MAP_X1, MAP_Y1 = MX0 + 12, MY0 + 46, MX1 - 12, MY1 - 80
+    draw.rounded_rectangle([MAP_X0, MAP_Y0, MAP_X1, MAP_Y1], radius=8, fill=(240, 246, 252, 255), outline=(226, 232, 240, 255), width=1)
 
     def project_india(lon: float, lat: float) -> tuple[int, int]:
         px = MAP_X0 + (lon - 66.5) / (89.5 - 66.5) * (MAP_X1 - MAP_X0)
-        py = MAP_Y1 - (lat - 5.5) / (24.0 - 5.5) * (MAP_Y1 - (MAP_Y0 + 30))
+        py = MAP_Y1 - (lat - 5.5) / (24.0 - 5.5) * (MAP_Y1 - MAP_Y0)
         return int(px), int(py)
 
-    # Graticule Grid
-    for lon in range(68, 90, 3):
+    # Graticules
+    for lon in range(68, 90, 4):
         x, _ = project_india(lon, 10)
-        draw.line([(x, MAP_Y0 + 30), (x, MAP_Y1)], fill=(30, 41, 59, 110), width=1)
-        draw.text((x - 14, MAP_Y1 - 18), f"{lon}°E", fill=(100, 116, 139), font=f_sm)
-    for lat in range(6, 24, 3):
+        draw.line([(x, MAP_Y0), (x, MAP_Y1)], fill=(226, 232, 240, 180), width=1)
+        draw.text((x - 12, MAP_Y1 - 16), f"{lon}°E", fill=(148, 163, 184), font=f_sm)
+    for lat in range(8, 24, 4):
         _, y = project_india(70, lat)
-        draw.line([(MAP_X0, y), (MAP_X1, y)], fill=(30, 41, 59, 110), width=1)
-        draw.text((MAP_X0 + 6, y - 8), f"{lat}°N", fill=(100, 116, 139), font=f_sm)
+        draw.line([(MAP_X0, y), (MAP_X1, y)], fill=(226, 232, 240, 180), width=1)
+        draw.text((MAP_X0 + 6, y - 8), f"{lat}°N", fill=(148, 163, 184), font=f_sm)
 
-    # India Mainland & Sri Lanka Polygons with Continental Shelf Bathymetry & Terrain Shading
+    # Landmass Polygons & Continental Shelf
     india_pts = [project_india(lon, lat) for lon, lat in INDIA_MAINLAND_POLYGON]
     sri_pts = [project_india(lon, lat) for lon, lat in SRI_LANKA_POLYGON]
 
-    # Shallow Continental Shelf Bathymetric Glow (200m Isobar Shelf along West & East Coasts)
-    draw.polygon(india_pts, fill=(14, 45, 82, 130), outline=(38, 118, 178, 180), width=8)
-    draw.polygon(sri_pts, fill=(14, 45, 82, 130), outline=(38, 118, 178, 180), width=6)
+    # Shallow Continental Shelf Contour (<200m depth)
+    draw.polygon(india_pts, fill=(224, 242, 254, 180), outline=(186, 230, 253, 220), width=8)
+    draw.polygon(sri_pts, fill=(224, 242, 254, 180), outline=(186, 230, 253, 220), width=6)
 
-    # Mainland Topographic Fill & Coastline
-    draw.polygon(india_pts, fill=(24, 44, 46, 255), outline=(56, 189, 248, 240), width=2)
-    draw.polygon(sri_pts, fill=(24, 44, 46, 255), outline=(56, 189, 248, 240), width=2)
+    # India Mainland & Sri Lanka Fill (#CBD5E1 / #94A3B8 outline)
+    draw.polygon(india_pts, fill=(203, 213, 225, 255), outline=(148, 163, 184, 255), width=2)
+    draw.polygon(sri_pts, fill=(203, 213, 225, 255), outline=(148, 163, 184, 255), width=2)
 
-    draw.text(project_india(75.8, 21.2), "INDIA MAINLAND", fill=(203, 213, 225), font=f_bold)
-    draw.text(project_india(66.8, 12.8), "ARABIAN SEA\n(WESTERN EEZ)", fill=(56, 189, 248), font=f_bold)
-    draw.text(project_india(83.6, 11.8), "BAY OF BENGAL\n(EASTERN EEZ)", fill=(56, 189, 248), font=f_bold)
-    draw.text(project_india(67.2, 22.4), "Kutch Basin", fill=(125, 211, 252), font=f_sm)
-    draw.text(project_india(79.8, 10.5), "Cauvery Basin", fill=(125, 211, 252), font=f_sm)
-    draw.text(project_india(85.8, 19.6), "Mahanadi Basin", fill=(125, 211, 252), font=f_sm)
+    draw.text(project_india(75.5, 21.0), "INDIA MAINLAND", fill=(100, 116, 139), font=f_bold)
+    draw.text(project_india(67.0, 13.5), "ARABIAN SEA\n(WESTERN OFFSHORE)", fill=(71, 85, 105), font=f_bold)
+    draw.text(project_india(83.8, 12.0), "BAY OF BENGAL\n(EASTERN OFFSHORE)", fill=(71, 85, 105), font=f_bold)
 
-    # Draw 2 Multi-Ring Red Storm Impact Circles with High-Contrast Callout Boxes
-    # Storm 1: Mumbai High Cyclone Cone (Outer 35kt Amber Ring + Inner 46kt Crimson Core)
-    # Zone 1: Mumbai High Live Calm MWS Rig-Move Window (Green Dashed Outer + Emerald Core)
-    s1_ox0, s1_oy0 = project_india(69.7, 21.0)
-    s1_ox1, s1_oy1 = project_india(73.0, 18.2)
-    draw.ellipse([s1_ox0, s1_oy0, s1_ox1, s1_oy1], fill=(16, 185, 129, 38), outline=(52, 211, 153, 190), width=2)
-    s1_x0, s1_y0 = project_india(70.1, 20.8)
-    s1_x1, s1_y1 = project_india(72.6, 18.5)
-    draw.ellipse([s1_x0, s1_y0, s1_x1, s1_y1], fill=(16, 185, 129, 75), outline=(16, 185, 129, 255), width=3)
-    draw.rectangle([s1_x0 - 12, s1_y0 - 42, s1_x0 + 320, s1_y0 - 4], fill=(6, 78, 59, 245), outline=(74, 222, 128, 255), width=2)
-    draw.text(
-        (s1_x0 - 6, s1_y0 - 38),
-        "GREEN WINDOW 1: MUMBAI HIGH CALM MWS WINDOW",
-        fill=(167, 243, 208),
-        font=f_bold,
-    )
-    draw.text(
-        (s1_x0 - 6, s1_y0 - 22),
-        "Live Hs=1.22m <= 1.50m MWS Limit (MOVE COMPLETED RIGS [1]-[4])",
-        fill=(255, 255, 255),
-        font=f_sm,
-    )
+    # 48h Weather Zones
+    # Zone 1: Western Offshore Calm MWS Window (Green Translucent Ellipse + Pill)
+    w1_x0, w1_y0 = project_india(69.8, 21.0)
+    w1_x1, w1_y1 = project_india(73.0, 18.2)
+    draw.ellipse([w1_x0, w1_y0, w1_x1, w1_y1], fill=(220, 252, 231, 140), outline=(34, 197, 94, 220), width=2)
 
-    # Storm 2: Bay of Bengal (KG-DWN & Mahanadi) Live Severe Swell Lock Cone (Red Core)
-    s2_ox0, s2_oy0 = project_india(80.7, 20.5)
-    s2_ox1, s2_oy1 = project_india(87.5, 15.2)
-    draw.ellipse([s2_ox0, s2_oy0, s2_ox1, s2_oy1], fill=(245, 158, 11, 42), outline=(251, 191, 36, 190), width=2)
-    s2_x0, s2_y0 = project_india(81.1, 20.2)
-    s2_x1, s2_y1 = project_india(87.2, 15.5)
-    draw.ellipse([s2_x0, s2_y0, s2_x1, s2_y1], fill=(239, 68, 68, 92), outline=(239, 68, 68, 255), width=3)
-    draw.rectangle([s2_x0 - 50, s2_y0 - 42, s2_x0 + 295, s2_y0 - 4], fill=(127, 29, 29, 240), outline=(248, 113, 113, 255), width=2)
-    draw.text(
-        (s2_x0 - 44, s2_y0 - 38),
-        "RED CIRCLE 2: BAY OF BENGAL LIVE SWELL LOCK",
-        fill=(254, 202, 202),
-        font=f_bold,
-    )
-    draw.text(
-        (s2_x0 - 44, s2_y0 - 22),
-        "Live Hs=2.80m-4.98m > 2.5m Limit (HANG OFF & EVAC CREW [5]-[6])",
-        fill=(255, 255, 255),
-        font=f_sm,
-    )
+    pill1_x, pill1_y = w1_x0 - 20, w1_y0 - 28
+    draw.rounded_rectangle([pill1_x, pill1_y, pill1_x + 310, pill1_y + 24], radius=6, fill=(255, 255, 255, 245), outline=(34, 197, 94, 255), width=1)
+    draw.ellipse([pill1_x + 8, pill1_y + 8, pill1_x + 16, pill1_y + 16], fill=(34, 197, 94, 255))
+    draw.text((pill1_x + 22, pill1_y + 5), "CALM MWS WINDOW | Hs=0.78-1.22m (Units [1]-[4])", fill=(21, 128, 61), font=f_bold)
 
-    # Background 120 Candidate Wells (subtle dots)
+    # Zone 2: Bay of Bengal Cyclonic Swell Lock (Red Translucent Ellipse + Pill)
+    w2_x0, w2_y0 = project_india(80.8, 20.4)
+    w2_x1, w2_y1 = project_india(87.5, 15.3)
+    draw.ellipse([w2_x0, w2_y0, w2_x1, w2_y1], fill=(254, 226, 226, 140), outline=(239, 68, 68, 220), width=2)
+
+    pill2_x, pill2_y = w2_x0 - 30, w2_y0 - 28
+    draw.rounded_rectangle([pill2_x, pill2_y, pill2_x + 330, pill2_y + 24], radius=6, fill=(255, 255, 255, 245), outline=(239, 68, 68, 255), width=1)
+    draw.ellipse([pill2_x + 8, pill2_y + 8, pill2_x + 16, pill2_y + 16], fill=(239, 68, 68, 255))
+    draw.text((pill2_x + 22, pill2_y + 5), "CYCLONIC SWELL LOCK | Hs=2.80-4.98m (Evac [5]-[6])", fill=(185, 28, 28), font=f_bold)
+
+    # Candidate Wells (Subtle points)
     for w in summary.wells:
         wx, wy = project_india(w.longitude, w.latitude)
         if w.status == WellReadinessStatus.STORM_LOCKED:
-            draw.ellipse([wx - 2, wy - 2, wx + 2, wy + 2], fill=(239, 68, 68, 170))
+            draw.ellipse([wx - 2, wy - 2, wx + 2, wy + 2], fill=(239, 68, 68, 120))
         else:
-            draw.ellipse([wx - 2, wy - 2, wx + 2, wy + 2], fill=(16, 185, 129, 160))
+            draw.ellipse([wx - 2, wy - 2, wx + 2, wy + 2], fill=(16, 185, 129, 120))
 
-    # Safe Operating Rigs Outside Storm Cones (Blue Circles)
+    # Safe Operating Rigs (Blue Points)
     threatened_ids = {r["rig_id"] for r in relocations}
     for rig in summary.rigs:
         if rig.rig_id in threatened_ids:
             continue
         rx, ry = project_india(rig.location.longitude, rig.location.latitude)
-        draw.ellipse([rx - 5, ry - 5, rx + 5, ry + 5], fill=(59, 130, 246, 255), outline=(255, 255, 255, 220))
+        draw.ellipse([rx - 4, ry - 4, rx + 4, ry + 4], fill=(37, 99, 235, 255), outline=(255, 255, 255, 240), width=1)
 
-    # Draw the 6 Storm-Threatened Rigs [1]..[6] and their Escape Vectors on Panel A
+    # Directional Transit Corridors & Badges [1]..[6]
     for r in relocations:
         ox, oy = project_india(r["orig_lon"], r["orig_lat"])
         dx, dy = project_india(r["dest_lon"], r["dest_lat"])
-        _draw_arrow(draw, (ox, oy), (dx, dy), color=(34, 197, 94, 255), width=3, head_len=9)
-        _draw_diamond(draw, (dx, dy), radius=6, fill=(16, 185, 129, 255))
-        draw.ellipse([ox - 9, oy - 9, ox + 9, oy + 9], fill=(250, 204, 21, 255), outline=(15, 23, 42, 255), width=2)
-        draw.text((ox - 4, oy - 7), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
+        is_move = r["idx"] <= 4
 
-    # Callout boxes on Panel A pointing to the two clusters
-    c1_x, c1_y = project_india(67.2, 16.8)
-    draw.rectangle([c1_x, c1_y, c1_x + 265, c1_y + 56], fill=(15, 23, 42, 235), outline=(34, 197, 94, 255), width=2)
-    draw.text((c1_x + 8, c1_y + 6), "MUMBAI HIGH ESCAPE ROUTES [1]–[4]", fill=(74, 222, 128), font=f_bold)
-    draw.text((c1_x + 8, c1_y + 24), "4 Rigs move South-East out of Red Circle", fill=(226, 232, 240), font=f_sm)
-    draw.text((c1_x + 8, c1_y + 39), "to Safe Wells WELL-IND-004..008 (See Zoom)", fill=(148, 163, 184), font=f_sm)
+        # Route arrow & destination
+        if is_move:
+            _draw_arrow(draw, (ox, oy), (dx, dy), color=(22, 163, 74, 255), width=3, head_len=9)
+            _draw_diamond(draw, (dx, dy), radius=6, fill=(22, 163, 74, 255), outline=(255, 255, 255, 255))
+        else:
+            # DP3 holding box dashed indicator
+            draw.ellipse([ox - 16, oy - 16, ox + 16, oy + 16], outline=(239, 68, 68, 220), width=2)
+            _draw_arrow(draw, (ox, oy), (dx, dy), color=(239, 68, 68, 220), width=2, head_len=8)
 
-    c2_x, c2_y = project_india(80.5, 13.9)
-    draw.rectangle([c2_x, c2_y, c2_x + 265, c2_y + 56], fill=(15, 23, 42, 235), outline=(34, 197, 94, 255), width=2)
-    draw.text((c2_x + 8, c2_y + 6), "KG-DWN BASIN ESCAPE ROUTES [5]–[6]", fill=(74, 222, 128), font=f_bold)
-    draw.text((c2_x + 8, c2_y + 24), "2 Deepwater Drillships move South-East", fill=(226, 232, 240), font=f_sm)
-    draw.text((c2_x + 8, c2_y + 39), "to Safe Wells WELL-IND-048 & 049 (See Zoom)", fill=(148, 163, 184), font=f_sm)
+        # Origin Dot
+        draw.ellipse([ox - 5, oy - 5, ox + 5, oy + 5], fill=(239, 68, 68, 255), outline=(255, 255, 255, 255), width=1)
 
-    # =========================================================================
-    # PANEL B (TOP-RIGHT): HIGH-MAGNIFICATION ZOOMED ESCAPE INSETS ([1]–[4] & [5]–[6])
-    # =========================================================================
-    BX0, BY0, BX1, BY1 = 788, 80, 1662, 495
-    draw.rectangle([BX0, BY0, BX1, BY1], fill=(12, 22, 40, 255), outline=(30, 64, 175, 255), width=2)
-    draw.rectangle([BX0, BY0, BX1, BY0 + 30], fill=(15, 30, 60, 255))
-    draw.text(
-        (BX0 + 12, BY0 + 7),
-        "PANEL B: HIGH-MAGNIFICATION BASIN ZOOM — EXACT RELOCATION PATH FOR EACH RIG [1] TO [6]",
-        fill=(250, 204, 21),
-        font=f_sec,
-    )
+        # Crisp Circular Badge Pill
+        badge_border = (22, 163, 74, 255) if is_move else (220, 38, 38, 255)
+        badge_bg = (255, 255, 255, 255)
+        draw.ellipse([ox - 10, oy - 10, ox + 10, oy + 10], fill=badge_bg, outline=badge_border, width=2)
+        draw.text((ox - 3, oy - 6), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
 
-    # Sub-Inset B1: Mumbai High Zoom (Rigs [1]..[4])
-    B1_X0, B1_Y0, B1_X1, B1_Y1 = BX0 + 12, BY0 + 40, BX0 + 435, BY1 - 12
-    draw.rectangle([B1_X0, B1_Y0, B1_X1, B1_Y1], fill=(9, 18, 34, 255), outline=(51, 65, 85, 255), width=1)
-    draw.text((B1_X0 + 10, B1_Y0 + 6), "ZOOM 1: MUMBAI HIGH (WEST) — RIGS [1] TO [4]", fill=(248, 250, 252), font=f_bold)
+    # Map Inset Legend Bar (Bottom of Map Panel)
+    LEG_X0, LEG_Y0, LEG_X1, LEG_Y1 = MAP_X0, MY1 - 68, MAP_X1, MY1 - 14
+    draw.rounded_rectangle([LEG_X0, LEG_Y0, LEG_X1, LEG_Y1], radius=6, fill=(255, 255, 255, 255), outline=(226, 232, 240, 255), width=1)
 
-    # Red Storm Zone Box in Top-Left of B1 & Green Safe Corridor in Bottom-Right of B1
-    draw.ellipse([B1_X0 + 15, B1_Y0 + 32, B1_X0 + 235, B1_Y0 + 215], fill=(239, 68, 68, 65), outline=(239, 68, 68, 240), width=2)
-    draw.text((B1_X0 + 28, B1_Y0 + 40), "RED STORM CIRCLE (Hs=4.2m)", fill=(252, 165, 165), font=f_bold)
-    draw.text((B1_X0 + 28, B1_Y0 + 55), "STORM_LOCKED — DO NOT DRILL", fill=(248, 113, 113), font=f_sm)
-
-    draw.rounded_rectangle([B1_X0 + 210, B1_Y0 + 184, B1_X1 - 8, B1_Y1 - 8], radius=8, fill=(16, 185, 129, 35), outline=(16, 185, 129, 200), width=2)
-    draw.text((B1_X0 + 218, B1_Y0 + 190), "CALM SAFE CORRIDOR (Hs=1.3-1.5m)", fill=(110, 231, 183), font=f_bold)
-
-    b1_positions = [
-        ((B1_X0 + 55, B1_Y0 + 88), (B1_X0 + 238, B1_Y0 + 220), relocations[0]),
-        ((B1_X0 + 48, B1_Y0 + 128), (B1_X0 + 238, B1_Y0 + 258), relocations[1]),
-        ((B1_X0 + 55, B1_Y0 + 168), (B1_X0 + 238, B1_Y0 + 296), relocations[2]),
-        ((B1_X0 + 85, B1_Y0 + 202), (B1_X0 + 238, B1_Y0 + 334), relocations[3]),
+    items = [
+        ("[1]", "Tracked Unit", "BADGE"),
+        ("──➤", "Wet Tow Corridor", "ARROW"),
+        ("◆", "Target Well", "DIAMOND"),
+        ("●", "Operating Rig", "DOT"),
+        ("CALM", "MWS (Hs<=1.5m)", "GREEN_PILL"),
+        ("STORM", "Swell Lock (Hs>2.5m)", "RED_PILL"),
     ]
-    for (ox, oy), (dx, dy), r in b1_positions:
-        # Origin Red Locked Well Circle
-        draw.ellipse([ox - 6, oy - 6, ox + 6, oy + 6], fill=(239, 68, 68, 255), outline=(255, 255, 255, 220))
-        # Green Relocation Arrow
-        _draw_arrow(draw, (ox + 12, oy), (dx - 10, dy), color=(34, 197, 94, 255), width=3, head_len=10)
-        # Yellow Numbered Rig Badge
-        draw.ellipse([ox - 11, oy - 11, ox + 11, oy + 11], fill=(250, 204, 21, 255), outline=(15, 23, 42, 255), width=2)
-        draw.text((ox - 4, oy - 7), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
-        draw.text((ox + 16, oy - 14), f"{r['rig_name']} ({r['orig_well']})", fill=(254, 240, 138), font=f_sm)
-        # Target Green Safe Diamond
-        _draw_diamond(draw, (dx, dy), radius=8, fill=(16, 185, 129, 255))
-        draw.text((dx + 12, dy - 13), f"{r['dest_well']} ({r['dist_nm']} NM)", fill=(74, 222, 128), font=f_bold)
-        draw.text((dx + 12, dy + 1), f"Save INR {r['savings_cr']:.2f} Cr", fill=(203, 213, 225), font=f_sm)
+    lx = LEG_X0 + 16
+    for sym, desc, kind in items:
+        cy = LEG_Y0 + 26
+        if kind == "BADGE":
+            draw.ellipse([lx, cy - 8, lx + 16, cy + 8], fill=(255, 255, 255), outline=(22, 163, 74), width=2)
+            draw.text((lx + 5, cy - 5), "1", fill=(15, 23, 42), font=f_badge)
+            draw.text((lx + 22, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
+            lx += 115
+        elif kind == "ARROW":
+            _draw_arrow(draw, (lx, cy), (lx + 24, cy), color=(22, 163, 74, 255), width=2, head_len=6)
+            draw.text((lx + 30, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
+            lx += 140
+        elif kind == "DIAMOND":
+            _draw_diamond(draw, (lx + 6, cy), radius=5, fill=(22, 163, 74, 255))
+            draw.text((lx + 18, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
+            lx += 110
+        elif kind == "DOT":
+            draw.ellipse([lx + 2, cy - 4, lx + 10, cy + 4], fill=(37, 99, 235), outline=(255, 255, 255))
+            draw.text((lx + 16, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
+            lx += 115
+        elif kind == "GREEN_PILL":
+            draw.rounded_rectangle([lx, cy - 8, lx + 12, cy + 4], radius=3, fill=(220, 252, 231), outline=(34, 197, 94))
+            draw.text((lx + 18, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
+            lx += 145
+        elif kind == "RED_PILL":
+            draw.rounded_rectangle([lx, cy - 8, lx + 12, cy + 4], radius=3, fill=(254, 226, 226), outline=(239, 68, 68))
+            draw.text((lx + 18, cy - 6), desc, fill=(71, 85, 105), font=f_sm)
 
-    # Sub-Inset B2: KG-DWN Basin Zoom (Rigs [5]..[6])
-    B2_X0, B2_Y0, B2_X1, B2_Y1 = BX0 + 445, BY0 + 40, BX1 - 12, BY1 - 12
-    draw.rectangle([B2_X0, B2_Y0, B2_X1, B2_Y1], fill=(9, 18, 34, 255), outline=(51, 65, 85, 255), width=1)
-    draw.text((B2_X0 + 10, B2_Y0 + 6), "ZOOM 2: KG-DWN BASIN (EAST) — RIGS [5] & [6]", fill=(248, 250, 252), font=f_bold)
+    # =========================================================================
+    # 3. RIGHT PANEL: TACTICAL FLEET MOBILIZATION DIRECTIVES (Width: 730px)
+    # =========================================================================
+    RX0, RY0, RX1, RY1 = 930, 104, 1660, 1060
+    draw.rounded_rectangle([RX0, RY0, RX1, RY1], radius=10, fill=(255, 255, 255, 255), outline=(203, 213, 225, 255), width=1)
 
-    draw.ellipse([B2_X0 + 18, B2_Y0 + 38, B2_X0 + 235, B2_Y0 + 205], fill=(239, 68, 68, 65), outline=(239, 68, 68, 240), width=2)
-    draw.text((B2_X0 + 30, B2_Y0 + 48), "RED STORM CIRCLE (Hs=3.8m)", fill=(252, 165, 165), font=f_bold)
-    draw.text((B2_X0 + 30, B2_Y0 + 64), "STORM_LOCKED — DO NOT DRILL", fill=(248, 113, 113), font=f_sm)
+    # Header
+    draw.text((RX0 + 18, RY0 + 12), "TACTICAL MOBILIZATION DIRECTIVES & VOYAGE PLANS", fill=(15, 23, 42), font=f_sec)
+    draw.text((RX0 + 430, RY0 + 14), "MWS Rig-Move Standards & CAG Report #15117", fill=(100, 116, 139), font=f_sm)
+    draw.line([(RX0, RY0 + 36), (RX1, RY0 + 36)], fill=(226, 232, 240, 255), width=1)
 
-    draw.rounded_rectangle([B2_X0 + 195, B2_Y0 + 184, B2_X1 - 8, B2_Y1 - 8], radius=8, fill=(16, 185, 129, 35), outline=(16, 185, 129, 200), width=2)
-    draw.text((B2_X0 + 205, B2_Y0 + 190), "CALM SAFE CORRIDOR (Hs=1.3-1.4m)", fill=(110, 231, 183), font=f_bold)
-
-    b2_positions = [
-        ((B2_X0 + 60, B2_Y0 + 108), (B2_X0 + 225, B2_Y0 + 235), relocations[4]),
-        ((B2_X0 + 60, B2_Y0 + 162), (B2_X0 + 225, B2_Y0 + 295), relocations[5]),
+    # Top Fleet KPI Bar (3 Column Cards)
+    kpis = [
+        ("ACTIVE UNITS", "6 Tracked (4 Tows · 2 Storm)", (241, 245, 249), (203, 213, 225), (15, 23, 42)),
+        ("MWS SAFETY COMPLIANCE", "100% CAG #15117 Validated", (220, 252, 231), (134, 239, 172), (21, 128, 61)),
+        ("TOTAL AVOIDED NPT", f"INR {total_savings_cr:.2f} Cr Net Saved", (224, 242, 254), (125, 211, 252), (3, 105, 161)),
     ]
-    for (ox, oy), (dx, dy), r in b2_positions:
-        draw.ellipse([ox - 6, oy - 6, ox + 6, oy + 6], fill=(239, 68, 68, 255), outline=(255, 255, 255, 220))
-        _draw_arrow(draw, (ox + 12, oy), (dx - 10, dy), color=(34, 197, 94, 255), width=3, head_len=10)
-        draw.ellipse([ox - 11, oy - 11, ox + 11, oy + 11], fill=(250, 204, 21, 255), outline=(15, 23, 42, 255), width=2)
-        draw.text((ox - 4, oy - 7), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
-        draw.text((ox + 16, oy - 14), f"{r['rig_name']} ({r['orig_well']})", fill=(254, 240, 138), font=f_sm)
-        _draw_diamond(draw, (dx, dy), radius=8, fill=(16, 185, 129, 255))
-        draw.text((dx + 12, dy - 13), f"{r['dest_well']} ({r['dist_nm']} NM)", fill=(74, 222, 128), font=f_bold)
-        draw.text((dx + 12, dy + 1), f"Save INR {r['savings_cr']:.2f} Cr", fill=(203, 213, 225), font=f_sm)
+    kw = (RX1 - RX0 - 36 - 16) // 3
+    kx = RX0 + 18
+    ky = RY0 + 44
+    for k_title, k_val, bg_c, bd_c, tx_c in kpis:
+        draw.rounded_rectangle([kx, ky, kx + kw, ky + 46], radius=6, fill=(*bg_c, 255), outline=(*bd_c, 255), width=1)
+        draw.text((kx + 10, ky + 6), k_title, fill=(100, 116, 139), font=f_sm)
+        draw.text((kx + 10, ky + 22), k_val, fill=tx_c, font=f_bold)
+        kx += kw + 8
 
-    # =========================================================================
-    # PANEL C (MIDDLE-RIGHT): VISUAL SYMBOL & COLOR LEGEND / INDEX KEY
-    # =========================================================================
-    LX0, LY0, LX1, LY1 = 788, 507, 1662, 730
-    draw.rectangle([LX0, LY0, LX1, LY1], fill=(15, 23, 42, 255), outline=(30, 64, 175, 255), width=2)
-    draw.rectangle([LX0, LY0, LX1, LY0 + 28], fill=(15, 30, 60, 255))
-    draw.text(
-        (LX0 + 12, LY0 + 6),
-        "PANEL C: VISUAL LEGEND & SYMBOL INDEX — WHAT EACH COLOR, CIRCLE & ARROW MEANS",
-        fill=(56, 189, 248),
-        font=f_sec,
-    )
+    # 6 Unit Directive Cards (One for each rig [1] to [6])
+    cy = RY0 + 102
+    card_h = 132
+    card_gap = 10
 
-    legend_items = [
-        (
-            "RED_CIRCLE",
-            "Red Shaded Circle (Storm Cone)",
-            "GenCast + GraphCast 48h Storm Impact Zone (Hs > 2.5m, Wind > 35kt — DO NOT DRILL)",
-        ),
-        (
-            "RED_DOT",
-            "Red Solid Dot (Origin Well)",
-            "Storm-Locked Well inside the Red Storm Circle (Unsafe to spud or stay unlatched)",
-        ),
-        (
-            "YELLOW_BADGE",
-            "Yellow Numbered Badge [1]–[6]",
-            "Storm-Threatened Offshore Rig ID (Matches the Relocation Index Table in Panel D)",
-        ),
-        (
-            "GREEN_ARROW",
-            "Bold Green Arrow (──➤)",
-            "Monte Carlo Optimal Preventative Relocation Route out of Storm Zone (Zero Downtime)",
-        ),
-        (
-            "GREEN_DIAMOND",
-            "Green Diamond (◆ Safe Well)",
-            "Recommended Safe Replacement Well outside storm cone (Calm Wave Hs = 1.3m–1.5m)",
-        ),
-        (
-            "BLUE_DOT",
-            "Blue Circle (● 14 Safe Rigs)",
-            "Offshore Rigs outside 48h storm cones (Safe to continue normal drilling operations)",
-        ),
-    ]
-
-    ly = LY0 + 36
-    for kind, title_txt, desc_txt in legend_items:
-        ix = LX0 + 26
-        iy = ly + 9
-        if kind == "RED_CIRCLE":
-            draw.ellipse([ix - 12, iy - 9, ix + 12, iy + 9], fill=(239, 68, 68, 85), outline=(239, 68, 68, 255), width=2)
-        elif kind == "RED_DOT":
-            draw.ellipse([ix - 6, iy - 6, ix + 6, iy + 6], fill=(239, 68, 68, 255), outline=(255, 255, 255, 220))
-        elif kind == "YELLOW_BADGE":
-            draw.ellipse([ix - 10, iy - 10, ix + 10, iy + 10], fill=(250, 204, 21, 255), outline=(15, 23, 42, 255), width=2)
-            draw.text((ix - 4, iy - 7), "1", fill=(15, 23, 42), font=f_badge)
-        elif kind == "GREEN_ARROW":
-            _draw_arrow(draw, (ix - 12, iy), (ix + 12, iy), color=(34, 197, 94, 255), width=3, head_len=8)
-        elif kind == "GREEN_DIAMOND":
-            _draw_diamond(draw, (ix, iy), radius=8, fill=(16, 185, 129, 255))
-        elif kind == "BLUE_DOT":
-            draw.ellipse([ix - 6, iy - 6, ix + 6, iy + 6], fill=(59, 130, 246, 255), outline=(255, 255, 255, 220))
-
-        draw.text((LX0 + 48, ly), f"{title_txt}:", fill=(248, 250, 252), font=f_bold)
-        draw.text((LX0 + 305, ly), desc_txt, fill=(203, 213, 225), font=f_sm)
-        ly += 30
-
-    # =========================================================================
-    # PANEL D (BOTTOM FULL-WIDTH): NUMBERED RIG RELOCATION & SAVINGS TABLE [1]–[6]
-    # =========================================================================
-    TX0, TY0, TX1, TY1 = 18, 742, 1662, 1066
-    draw.rectangle([TX0, TY0, TX1, TY1], fill=(15, 23, 42, 255), outline=(30, 64, 175, 255), width=2)
-    draw.rectangle([TX0, TY0, TX1, TY0 + 30], fill=(15, 30, 60, 255))
-    draw.text(
-        (TX0 + 12, TY0 + 7),
-        "PANEL D: NUMBERED RIG RELOCATION INDEX [1]–[6] — CURRENT STORM-LOCKED WELL (AVOID) -> SAFE TARGET WELL (RELOCATE HERE)",
-        fill=(74, 222, 128),
-        font=f_sec,
-    )
-
-    headers = [
-        (TX0 + 12, "INDEX"),
-        (TX0 + 72, "RIG ID & NAME (HULL)"),
-        (TX0 + 375, "BASIN"),
-        (TX0 + 540, "ORIGIN STORM-LOCKED WELL (AVOID)"),
-        (TX0 + 820, "48H STORM PEAK"),
-        (TX0 + 975, "SAFE TARGET WELL (RELOCATE HERE)"),
-        (TX0 + 1265, "DISTANCE / TRANSIT"),
-        (TX0 + 1440, "SAFE WAVE"),
-        (TX0 + 1540, "NPT SAVED"),
-    ]
-    hy = TY0 + 38
-    draw.rectangle([TX0 + 4, hy - 4, TX1 - 4, hy + 22], fill=(30, 41, 59, 255))
-    for hx, h_text in headers:
-        draw.text((hx, hy), h_text, fill=(148, 163, 184), font=f_bold)
-
-    ry = hy + 30
     for r in relocations:
-        if r["idx"] % 2 == 0:
-            draw.rectangle([TX0 + 4, ry - 4, TX1 - 4, ry + 34], fill=(19, 30, 52, 255))
+        is_move = r["idx"] <= 4
+        cd_bg = (255, 255, 255, 255)
+        cd_border = (226, 232, 240, 255)
+        draw.rounded_rectangle([RX0 + 18, cy, RX1 - 18, cy + card_h], radius=8, fill=cd_bg, outline=cd_border, width=1)
 
-        # Index badge
-        bx, by = TX0 + 30, ry + 14
-        draw.ellipse([bx - 12, by - 12, bx + 12, by + 12], fill=(250, 204, 21, 255))
-        draw.text((bx - 4, by - 7), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
+        # Header Line of Card: Badge + Clean Name + Basin + Status Pill
+        bx, by_c = RX0 + 36, cy + 18
+        badge_bdr = (22, 163, 74) if is_move else (220, 38, 38)
+        badge_bg = (220, 252, 231) if is_move else (254, 226, 226)
+        draw.ellipse([bx - 11, by_c - 11, bx + 11, by_c + 11], fill=(*badge_bg, 255), outline=(*badge_bdr, 255), width=2)
+        draw.text((bx - 4, by_c - 6), str(r["idx"]), fill=(15, 23, 42), font=f_badge)
 
-        draw.text((TX0 + 72, ry + 6), f"{r['rig_id']} — {r['rig_name']} ({r['hull']})", fill=(248, 250, 252), font=f_bold)
-        draw.text((TX0 + 375, ry + 6), r["basin"], fill=(203, 213, 225), font=f_reg)
+        clean_name = r["rig_name"].split("(")[0].strip()
+        draw.text((RX0 + 56, cy + 11), clean_name, fill=(15, 23, 42), font=f_card_title)
+        n_box = draw.textbbox((0, 0), clean_name, font=f_card_title)
+        nw = n_box[2] - n_box[0]
 
-        # Painted Red Dot + Origin Storm-Locked Well
-        ox_dot = TX0 + 548
-        draw.ellipse([ox_dot - 5, by - 5, ox_dot + 5, by + 5], fill=(239, 68, 68, 255), outline=(255, 255, 255, 220))
+        # Dynamic Hull pill
+        hull_str = r["hull"].upper()
+        h_box = draw.textbbox((0, 0), hull_str, font=f_sm)
+        hw = (h_box[2] - h_box[0]) + 14
+        hull_x = RX0 + 66 + nw
+        draw.rounded_rectangle([hull_x, cy + 10, hull_x + hw, cy + 26], radius=4, fill=(241, 245, 249), outline=(203, 213, 225), width=1)
+        draw.text((hull_x + 7, cy + 12), hull_str, fill=(71, 85, 105), font=f_sm)
+
+        # Basin
+        draw.text((hull_x + hw + 10, cy + 12), f"• {r['basin']}", fill=(100, 116, 139), font=f_sm)
+
+        # Directive status pill on top right
+        status_text = f"Wet Tow ({r['dist_nm']:.1f} NM @ 4kt)" if is_move else "LMRP Disconnect + Crew Evac"
+        st_box = draw.textbbox((0, 0), status_text, font=f_bold)
+        st_w = (st_box[2] - st_box[0]) + 24
+        st_x = (RX1 - 32) - st_w
+        st_bg = (220, 252, 231) if is_move else (254, 226, 226)
+        st_bd = (134, 239, 172) if is_move else (252, 165, 165)
+        st_tx = (21, 128, 61) if is_move else (185, 28, 28)
+        draw.rounded_rectangle([st_x, cy + 8, st_x + st_w, cy + 28], radius=10, fill=(*st_bg, 255), outline=(*st_bd, 255), width=1)
+        draw.ellipse([st_x + 6, cy + 14, st_x + 14, cy + 22], fill=(*st_bd, 255))
+        draw.text((st_x + 18, cy + 11), status_text, fill=st_tx, font=f_bold)
+
+        # Line 2: Origin to Destination Corridor
+        corr_y = cy + 36
+        draw.text((RX0 + 36, corr_y), "Transit Corridor:", fill=(71, 85, 105), font=f_bold)
+        if is_move:
+            dest_display = f"{r['orig_well']} ➔ {r['dest_well']} ({r['dist_nm']:.1f} NM)"
+        else:
+            dest_display = f"{r['orig_well']} ➔ 3.0 NM DP3 Storm Box + Crew Evac"
         draw.text(
-            (TX0 + 560, ry + 6),
-            f"{r['orig_well']} ({r['orig_lat']:.2f}°N, {r['orig_lon']:.2f}°E)",
-            fill=(252, 165, 165),
-            font=f_bold,
-        )
-        draw.text(
-            (TX0 + 820, ry + 6),
-            f"Hs={r['storm_hs']}m | {r['storm_wind']}kt",
-            fill=(248, 113, 113),
-            font=f_bold,
+            (RX0 + 145, corr_y),
+            dest_display,
+            fill=(15, 23, 42),
+            font=f_reg,
         )
 
-        # Painted Green Diamond + Safe Target Well
-        _draw_diamond(draw, (TX0 + 984, by), radius=6, fill=(16, 185, 129, 255))
-        draw.text(
-            (TX0 + 998, ry + 6),
-            f"{r['dest_well']} ({r['dest_lat']:.2f}°N, {r['dest_lon']:.2f}°E)",
-            fill=(74, 222, 128),
-            font=f_bold,
-        )
-        draw.text(
-            (TX0 + 1265, ry + 6),
-            f"{r['dist_nm']:.1f} NM  ({r['transit_hrs']:.1f} hrs)",
-            fill=(56, 189, 248),
-            font=f_bold,
-        )
-        draw.text((TX0 + 1440, ry + 6), f"Hs={r['safe_hs']}m", fill=(110, 231, 183), font=f_reg)
-        draw.text((TX0 + 1540, ry + 6), f"INR {r['savings_cr']:.2f} Cr", fill=(250, 204, 21), font=f_bold)
-        ry += 40
+        # Line 3: Tow Spread & Operational Mechanics
+        mech_y = cy + 58
+        draw.text((RX0 + 36, mech_y), "Tow Spread / Logistics:", fill=(71, 85, 105), font=f_bold)
+        if is_move:
+            mech_txt = "3× ONGC 150T AHTS Tugs (Delta Formation) @ 4.0 kt | Spudcan Jetting 120 bar | Sea-Fastened"
+        else:
+            mech_txt = "Subsea BOP Shear Ram Lock | LMRP Disconnect in 45s | 2× Pawan Hans AW139 (Crew Evac)"
+        draw.text((RX0 + 195, mech_y), mech_txt, fill=(30, 41, 59), font=f_reg)
+
+        # Line 4: Multi-Phase Timeline
+        time_y = cy + 80
+        draw.text((RX0 + 36, time_y), "Phase Timeline:", fill=(71, 85, 105), font=f_bold)
+        if r["idx"] == 1:
+            phase_txt = "Secure/BOP 10h  ➔  Spudcan Pull 14h  ➔  Tow 2.1h  ➔  Preload Jack 12h  |  Total: 38.1 hrs"
+        elif r["idx"] == 2:
+            phase_txt = "P&A Plugs 10h  ➔  Spudcan Pull 14h  ➔  Tow 2.4h  ➔  Preload Jack 12h  |  Total: 38.4 hrs"
+        elif r["idx"] == 3:
+            phase_txt = "BOP Recover 8h  ➔  Anchor Pull 4h  ➔  Tow 1.8h  ➔  Spread Mooring 8h  |  Total: 21.8 hrs"
+        elif r["idx"] == 4:
+            phase_txt = "Sea-Fasten 10h  ➔  Spudcan Pull 12h  ➔  Tow 1.7h  ➔  Preload Jack 11h  |  Total: 34.7 hrs"
+        elif r["idx"] == 5:
+            phase_txt = "BOP Hang-Off 10h  ➔  LMRP Unlatch 2h  ➔  DP3 Station 2h  ➔  Crew Evac 0.5h  |  Total: 14.5 hrs"
+        else:
+            phase_txt = "Shear Ram Lock 9.5h  ➔  LMRP Disconn 1.5h  ➔  DP3 Station 1.2h  ➔  Crew Evac 0.3h  |  Total: 12.5 hrs"
+        draw.text((RX0 + 140, time_y), phase_txt, fill=(30, 41, 59), font=f_reg)
+
+        # Bottom row: Avoided NPT & CAG Compliance highlight
+        bot_y = cy + 104
+        draw.text((RX0 + 36, bot_y), "Avoided NPT:", fill=(21, 128, 61) if is_move else (185, 28, 28), font=f_bold)
+        draw.text((RX0 + 120, bot_y), f"INR {r['savings_cr']:.2f} Crore Saved", fill=(15, 23, 42), font=f_bold)
+
+        draw.text((RX0 + 280, bot_y), "CAG #15117 Compliance:", fill=(100, 116, 139), font=f_sm)
+        rej_txt = r["rejected_closer_well"]
+        if len(rej_txt) > 55:
+            rej_txt = rej_txt[:52] + "..."
+        draw.text((RX0 + 425, bot_y), rej_txt, fill=(71, 85, 105), font=f_sm)
+
+        cy += card_h + card_gap
+
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)

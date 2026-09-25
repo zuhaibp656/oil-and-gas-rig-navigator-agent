@@ -156,26 +156,33 @@ def _take_pending(callback_context: CallbackContext | None, key: str) -> FleetSu
 
 
 def _build_standout_links_markdown() -> str:
-    """Build a well-spaced, properly headed Markdown section for the Interactive HTML Map, 4-Panel Infographic & SOP Guidelines."""
+    """Build a well-spaced, properly headed Markdown section for the Interactive HTML Map, 4-Panel Infographic, SOP Guidelines & Executive Deck."""
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
     bucket_name = f"{project_id}-agent-staging"
     html_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
     html_cloud = f"https://storage.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
     sop_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_rig_move_sop_latest.html"
     png_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_4panel_latest.png"
+    deck_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/ormwo_executive_presentation.html"
+    deck_cloud = f"https://storage.cloud.google.com/{bucket_name}/interactive_maps/ormwo_executive_presentation.html"
     return (
         "\n\n---\n\n"
-        "## 📊 Interactive Visuals & Printable Engineering Documents\n\n"
+        "## 📊 Executive Visual Artifacts & Printable Engineering Documents\n\n"
         "### 1. 🌐 Interactive Full-Screen India EEZ Command Map (HTML)\n"
-        "Pan, zoom, and click Rigs `[1]–[6]` to inspect live Open-Meteo wave/wind telemetry and 120 candidate wells in full screen.\n\n"
+        "Explore real-time bathymetry, 20 rigs, 120 candidate wells, live Open-Meteo telemetry, and click-to-fly relocation corridors in full screen.\n\n"
         f"👉 **[Open Interactive Full-Screen India EEZ Map (HTML) ↗]({html_mtls})**  \n"
-        f"*(Alternate Link: [Open via storage.cloud.google.com ↗]({html_cloud}))*\n\n"
+        f"*(Mirror: [Open via storage.cloud.google.com ↗]({html_cloud}))*\n\n"
         "---\n\n"
-        "### 2. 🖼️ High-Resolution 4-Panel Tactical Infographic (1680×1080 PNG)\n"
-        "View or download the full-size 4-panel tactical infographic with zoomed Mumbai High and Bay of Bengal insets.\n\n"
-        f"👉 **[Open High-Resolution 4-Panel Tactical Infographic (PNG) ↗]({png_mtls})**\n\n"
+        "### 2. 🖼️ High-Resolution Tactical Infographic (1680×1080 PNG)\n"
+        "Minimalist Google Cloud design featuring strategic EEZ theater map, Mumbai High & Bay of Bengal insets, and executive unit directives.\n\n"
+        f"👉 **[Open High-Resolution Tactical Infographic (PNG) ↗]({png_mtls})**\n\n"
         "---\n\n"
-        "### 3. 📋 ONGC / CAG Audit #15117 Engineering SOP & Logistics Guidelines (HTML)\n"
+        "### 3. 📑 Executive Briefing & Transformation Deck (Interactive HTML)\n"
+        "Modern light-minimalist presentation deck with animated slide navigator, architecture blueprints, CAG Audit metrics, and live telemetry.\n\n"
+        f"👉 **[Open Executive Briefing & Transformation Deck (HTML) ↗]({deck_mtls})**  \n"
+        f"*(Mirror: [Open via storage.cloud.google.com ↗]({deck_cloud}))*\n\n"
+        "---\n\n"
+        "### 4. 📋 ONGC / CAG Audit #15117 Engineering SOP & Logistics Guidelines (HTML)\n"
         "Printable Marine Warranty Surveyor (MWS) spudcan extraction limits, 3× AHTS tug tow checklists, and DP3 helicopter evacuation guidelines.\n\n"
         f"👉 **[Open Printable MWS & CAG #15117 Engineering SOP Document ↗]({sop_mtls})**\n"
     )
@@ -354,36 +361,73 @@ CRITICAL DOMAIN & ENGINEERING RULES (FOLLOW EXACTLY):
    ### ⚓ 1. Live Metocean Reality & CAG Audit #15117 Executive Briefing
 
    - **🟢 Western Offshore (`Mumbai High` `Hs = 1.22m`, `Bassein` `1.18m`, `Tapti` `0.78m`) — CALM MWS RIG-MOVE WINDOW (`Hs <= 1.50m` Limit)**  
-     Live waves (`1.18m–1.22m`) are below the `1.50m` MWS spudcan extraction ceiling. **4 ONGC Rigs (`[1]`–`[4]`) that have COMPLETED their current wells / dry holes** are authorized to jack down (`14h`), extract spudcans, and wet-tow (`6.8–9.6 NM @ 4.0 kt` via `3× ONGC AHTS Tugs`) to the **Closest EC-Cleared Ready Wells**.
+     Live waves (`0.78m–1.22m`) are well within the `1.50m` MWS spudcan extraction ceiling. **4 ONGC Units (`[1]`–`[4]`) that completed their wells / dry holes** are cleared for planned jack-down, spudcan extraction, and wet tow (`6.8–9.6 NM @ 4.0 kt` via `3× ONGC AHTS Tugs`) to **Closest EC-Cleared Ready Wells**.
 
    - **🔴 Eastern Offshore (`Bay of Bengal: KG-DWN-98/2` `Hs = 2.80m` & `Mahanadi` `Hs = 4.98m, Gusts 41.2 kt`) — ACTIVE CYCLONIC SWELL LOCK (`Hs > 2.50m` Limit)**  
-     Moving a rig to a new well in `Hs > 1.50m` is physically impossible and prohibited by MWS. Active deepwater drillships **`[5]` & `[6]`** execute **In-Place BOP Hang-Off (`12h`), LMRP Unlatch (`3.0 NM` DP3 Storm Box), and `🚁` Pawan Hans Helicopter Crew Evacuation (`114 POB`)** to Rajahmundry & Paradip Shore Bases.
+     Moving an active rig to a new well during high swell is physically prohibited by MWS. Deepwater drillships **`[5]` & `[6]`** execute **In-Place BOP Hang-Off, LMRP Disconnect into a `3.0 NM` DP3 Storm Box, and `🚁` Pawan Hans Helicopter Crew Evacuation (`114 POB`)** to Rajahmundry & Paradip Shore Bases.
 
    ---
 
-   ### 📋 2. Master Fleet Operational Directives (`Copy-Ready for Google Sheets`)
+   ### 🧭 2. Tactical Mobilization & Voyage Directives (Detailed Operational Cards)
 
-   | Badge & Rig | Basin | Live Wave (`Hs`) | Well Status | MWS Operational Directive | Target Well / Shore Base | Time & Saved (`₹ Cr`) |
-   | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-   | `[1]` Sagar Samrat | Mumbai High | `1.22 m` (🟢 Calm) | Completed (`MH-N-001`) | Wet Tow (`8.4 NM` via 3× AHTS) | `WELL-IND-004 (MH-N-B193)` | `38.1 h` · `₹11.50 Cr` |
-   | `[2]` Sagar Ratna | Mumbai High | `1.21 m` (🟢 Calm) | Dry Hole P&A (`MH-S-002`) | Wet Tow (`9.6 NM` via 3× AHTS) | `WELL-IND-005 (MH-S-D18)` | `38.4 h` · `₹10.80 Cr` |
-   | `[3]` Sagar Bhushan | Heera-Bassein | `1.18 m` (🟢 Calm) | Completed (`HPB-003`) | Wet Tow (`7.2 NM` via 3× AHTS) | `WELL-IND-006 (Neelam-14)` | `21.8 h` · `₹9.60 Cr` |
-   | `[4]` Aban Ice | Tapti-Daman | `0.78 m` (🟢 Calm) | Completed (`TD-C26-01`) | Wet Tow (`6.8 NM` via 3× AHTS) | `WELL-IND-008 (Daman-04)` | `34.7 h` · `₹8.90 Cr` |
-   | `[5]` Dhirubhai KG1 | KG-DWN (BoB) | `2.80 m` (🔴 Storm) | Active Drilling (`KG-U1`) | Hold & BOP Hang-Off + 🚁 Evac | `ONGC Rajahmundry Base` | `14.5 h` · `₹14.20 Cr` |
-   | `[6]` Platinum Explorer | Mahanadi (BoB) | `4.98 m` (🔴 Storm) | Active Drilling (`MND-01`) | Hold & LMRP Unlatch + 🚁 Evac | `ONGC Paradip Shore Base` | `12.5 h` · `₹16.50 Cr` |
+   #### `[1]` Sagar Samrat (Jack-Up Rig) — Mumbai High North
+   - **Operational Mode**: Post-Completion Rig Move (Target Depth 3,280m reached & cased).
+   - **Departure Window & Sea State**: Immediate 36h Calm Window (`Live Hs = 1.22m`, Wind 16.6 kt — safe below 1.50m MWS limit).
+   - **Transit Corridor**: `MH-N-001` (19.38° N, 71.32° E) ➔ `WELL-IND-004` / MH-N-B193 (19.26° N, 71.44° E) | `8.4 NM @ 142° SE`.
+   - **Tow Spread & Mechanics**: 3× ONGC 150T AHTS Tugs (*Sindhu-14/16/19*) in Delta formation | Tow speed 4.0 kt | Spudcan jetting at 120 bar.
+   - **Multi-Phase Timeline**: Secure/BOP `10.0h` ➔ Spudcan extraction `14.0h` ➔ Underway tow `2.1h` ➔ Pinning & preload `12.0h` | **Total: 38.1h**.
+   - **Capital & Compliance**: **₹11.50 Cr Avoided NPT** | Closer well `MH-N-002` (4.1 NM) rejected due to pending MoEFCC clearance per CAG #15117.
+
+   #### `[2]` Sagar Ratna (Jack-Up Rig) — Mumbai High South
+   - **Operational Mode**: Dry Hole Redeployment (Plug & Abandonment cement plugs set).
+   - **Departure Window & Sea State**: Immediate Calm Window (`Live Hs = 1.21m`, Wind 16.2 kt).
+   - **Transit Corridor**: `MH-S-002` (19.18° N, 71.36° E) ➔ `WELL-IND-005` / MH-S-D18 (19.04° N, 71.48° E) | `9.6 NM @ 139° SE`.
+   - **Tow Spread & Mechanics**: 3× ONGC AHTS Tugs | Tow speed 4.0 kt | 16m clay penetration extraction with bottom jetting.
+   - **Multi-Phase Timeline**: Plug verification `10.0h` ➔ Spudcan pull `14.0h` ➔ Underway tow `2.4h` ➔ Pinning & preload `12.0h` | **Total: 38.4h**.
+   - **Capital & Compliance**: **₹10.80 Cr Avoided NPT** | Closer well `MH-S-003` (5.3 NM) rejected (subsea pipeline crossing lacks 500m MWS buffer).
+
+   #### `[3]` Sagar Bhushan (Floater / Drillship) — Heera-Panna-Bassein
+   - **Operational Mode**: Production Well Completed (Xmas tree installed, rig released).
+   - **Departure Window & Sea State**: Immediate Window (`Live Hs = 1.18m`, Wind 17.0 kt).
+   - **Transit Corridor**: `HPB-003` (18.78° N, 72.08° E) ➔ `WELL-IND-006` / Neelam-14 (18.66° N, 72.18° E) | `7.2 NM @ 140° SE`.
+   - **Tow Spread & Mechanics**: 8-Point Spread Mooring Anchor handling via 2× AHTS | Field transit @ 4.0 kt.
+   - **Multi-Phase Timeline**: BOP recovery `8.0h` ➔ Anchor recovery `4.0h` ➔ Transit `1.8h` ➔ Spread mooring reset `8.0h` | **Total: 21.8h**.
+   - **Capital & Compliance**: **₹9.60 Cr Avoided NPT** | Closer well `HPB-004` (3.8 NM) rejected (awaiting conductor jetting vessel).
+
+   #### `[4]` Aban Ice (Jack-Up Rig) — Tapti-Daman Sector
+   - **Operational Mode**: New Campaign Deployment (Testing completed at TD-C26-01).
+   - **Departure Window & Sea State**: Ultra-calm window (`Live Hs = 0.78m`, Wind 11.3 kt).
+   - **Transit Corridor**: `TD-C26-01` (20.78° N, 71.88° E) ➔ `WELL-IND-008` / Daman-04 (20.66° N, 71.82° E) | `6.8 NM @ 207° SW`.
+   - **Tow Spread & Mechanics**: 3× ONGC AHTS Tugs | Tow speed 4.0 kt | Spudcan jetting at 110 bar.
+   - **Multi-Phase Timeline**: Deck sea-fastening `10.0h` ➔ Spudcan pull `12.0h` ➔ Underway tow `1.7h` ➔ Preload jack `11.0h` | **Total: 34.7h**.
+   - **Capital & Compliance**: **₹8.90 Cr Avoided NPT** | Closer well `TD-C26-02` (2.9 NM) rejected (pending Naval Hydrographic NOC).
+
+   #### `[5]` Dhirubhai Deepwater KG1 (DP3 Drillship) — KG-DWN-98/2
+   - **Operational Mode**: In-Place Well Hang-Off & 🚁 Crew Evacuation (Active deepwater drilling @ 2,840m).
+   - **Sea State & Storm Alert**: 🔴 Severe Swell Lock (`Live Hs = 2.80m`, Peak 3.10m, Gusts 36.5 kt — Rig Move Prohibited).
+   - **Hold & Evacuation Corridor**: `WELL-IND-045` (16.32° N, 82.16° E) ➔ 3.0 NM DP3 Storm Holding Box + `🚁` Evacuation to Kakinada Base (38 NM).
+   - **Operational Mechanics**: RTTS storm packer set, drill pipe hung off in subsea BOP shear rams (12h) | LMRP unlatched in 45s | DP3 weather-vaning into 210° swell | 2× Pawan Hans AW139 helicopters evacuate 54 non-essential crew.
+   - **Timeline & Capital**: Hang-off `10.0h` ➔ LMRP unlatch `2.0h` ➔ DP3 station `2.0h` ➔ 🚁 Evacuation `0.5h` | **Total: 14.5h** | **₹14.20 Cr Saved**.
+
+   #### `[6]` Platinum Explorer (DP3 Drillship) — Mahanadi Deepwater
+   - **Operational Mode**: Emergency LMRP Unlatch & 🚁 Crew Evacuation (Active drilling @ 3,110m).
+   - **Sea State & Storm Alert**: 🔴 Cyclonic Depression Alert (`Live Hs = 4.98m`, Gusts 41.2 kt — Extreme Ocean Risk).
+   - **Hold & Evacuation Corridor**: `WELL-IND-046` (19.85° N, 86.75° E) ➔ 2.8 NM DP3 Storm Holding Box + `🚁` Evacuation to Paradip Base (25 NM).
+   - **Operational Mechanics**: Emergency Disconnect Sequence (EDS) initiated | Shear ram lock on drill string | DP3 thrusters heading into 224° swell | Pawan Hans helicopter evacuation of 60 crew.
+   - **Timeline & Capital**: Hang-off `9.5h` ➔ LMRP unlatch `1.5h` ➔ DP3 station `1.2h` ➔ 🚁 Evacuation `0.3h` | **Total: 12.5h** | **₹16.50 Cr Saved**.
 
    ---
 
-   ### 🛠️ 3. Engineering Phase Breakdown & CAG Audit #15117 Clearance Check (`Copy-Ready for Google Sheets`)
+   ### 📋 3. Master Fleet Relocation Ledger (`Copy-Ready for Google Sheets`)
 
-   | Badge & Rig | Phase 1 (Secure / BOP) | Phase 2 (Spudcan / LMRP) | Phase 3 (Tow / DP3 Box) | Phase 4 (Pre-Load / 🚁 Evac) | Closer Well Rejected (`CAG #15117`) |
-   | :--- | :--- | :--- | :--- | :--- | :--- |
-   | `[1]` Sagar Samrat | `10.0 h` Well Secure | `14.0 h` Spudcan Pull | `2.1 h` Tow (`8.4 NM`) | `12.0 h` Pre-Load Jack | `MH-N-002` (`4.1 NM` — No MoEFCC EC) |
-   | `[2]` Sagar Ratna | `10.0 h` Plug & Abandon | `14.0 h` Spudcan Pull | `2.4 h` Tow (`9.6 NM`) | `12.0 h` Pre-Load Jack | `MH-S-003` (`5.2 NM` — Pipeline Buffer) |
-   | `[3]` Sagar Bhushan | `8.0 h` Xmas Tree Cap | `4.0 h` Anchor Pull | `1.8 h` Tow (`7.2 NM`) | `8.0 h` Spread Mooring | `HPB-004` (`3.9 NM` — No Conductor) |
-   | `[4]` Aban Ice | `10.0 h` BOP Disconn. | `12.0 h` Spudcan Pull | `1.7 h` Tow (`6.8 NM`) | `11.0 h` Pre-Load Jack | `TD-C26-02` (`4.4 NM` — No Defence NOC) |
-   | `[5]` Dhirubhai KG1 | `10.0 h` RTTS Storm Pack | `2.0 h` LMRP Unlatch | `2.0 h` DP3 (`3.0 NM` Box) | `0.5 h` 🚁 Evac (`54 POB`) | Rig Move Prohibited (`Hs = 2.80m > 1.5m`) |
-   | `[6]` Platinum Explorer | `9.5 h` Shear Ram Lock | `1.5 h` LMRP Unlatch | `1.2 h` DP3 (`2.8 NM` Box) | `0.3 h` 🚁 Evac (`60 POB`) | Rig Move Prohibited (`Hs = 4.98m > 1.5m`) |
+   | Unit & Basin | Operational Directive | Transit Corridor (From ➔ To) | Tow Spread & Speed | Multi-Phase Time & Saved |
+   | :--- | :--- | :--- | :--- | :--- |
+   | `[1]` Sagar Samrat (Mumbai High N) | 🟢 Wet Tow (Completed Well) | `MH-N-001` ➔ `WELL-IND-004` (8.4 NM) | 3× AHTS Tugs @ 4.0 kt | `38.1 h` · `₹11.50 Cr` |
+   | `[2]` Sagar Ratna (Mumbai High S) | 🟢 Wet Tow (Dry Hole P&A) | `MH-S-002` ➔ `WELL-IND-005` (9.6 NM) | 3× AHTS Tugs @ 4.0 kt | `38.4 h` · `₹10.80 Cr` |
+   | `[3]` Sagar Bhushan (Bassein) | 🟢 Field Move (Completed Well) | `HPB-003` ➔ `WELL-IND-006` (7.2 NM) | 8-Pt Mooring @ 4.0 kt | `21.8 h` · `₹9.60 Cr` |
+   | `[4]` Aban Ice (Tapti-Daman) | 🟢 Wet Tow (New Campaign) | `TD-C26-01` ➔ `WELL-IND-008` (6.8 NM) | 3× AHTS Tugs @ 4.0 kt | `34.7 h` · `₹8.90 Cr` |
+   | `[5]` Dhirubhai KG1 (KG-DWN BoB) | 🔴 Hold & LMRP Unlatch + 🚁 Evac | `KG-DWN-U1` ➔ 3 NM DP3 Box / Kakinada | DP3 Dynamic Pos. / AW139 | `14.5 h` · `₹14.20 Cr` |
+   | `[6]` Platinum Explorer (Mahanadi BoB) | 🔴 Emergency EDS + 🚁 Evac | `MND-OSN-01` ➔ 2.8 NM DP3 Box / Paradip | DP3 Dynamic Pos. / AW139 | `12.5 h` · `₹16.50 Cr` |
 """
 
 

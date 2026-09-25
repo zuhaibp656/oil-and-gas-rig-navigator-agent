@@ -18,7 +18,6 @@ try:
     from app.contracts import FleetSummary, RigUnit
     from app.render.india_map_png import _get_six_relocation_rows
     from app.rigs.india_eez_dataset import (
-        ACTIVE_48H_STORM_ZONES,
         INDIA_120_WELL_REGISTRY,
         get_india_coastline_layer_values,
     )
@@ -27,7 +26,6 @@ except ImportError:
     from contracts import FleetSummary, RigUnit
     from render.india_map_png import _get_six_relocation_rows
     from rigs.india_eez_dataset import (
-        ACTIVE_48H_STORM_ZONES,
         INDIA_120_WELL_REGISTRY,
         get_india_coastline_layer_values,
     )
@@ -62,7 +60,6 @@ _SHELF_BATHYMETRY_VALUES: list[dict[str, Any]] = [
 def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
     """Build a Full-Width (680px) 3-Tier Dark Bathymetric Vega-Lite v5 Command Infographic."""
     coastline_values = get_india_coastline_layer_values()
-    storm_zones = summary.active_storm_zones or ACTIVE_48H_STORM_ZONES
     relocation_rows = _get_six_relocation_rows()
 
     recommended_well_ids = {r["dest_well"] for r in relocation_rows}
@@ -212,12 +209,12 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
     main_map_panel: dict[str, Any] = {
         "width": 660,
         "height": 410,
-        "view": {"fill": "#0B2545", "stroke": "#38BDF8", "strokeWidth": 1.5},
+        "view": {"fill": "#F0F4F8", "stroke": "#CBD5E1", "strokeWidth": 1.5},
         "title": {
-            "text": "PANEL A — INDIA EEZ BATHYMETRIC COMMAND MAP (20 Rigs, 120 Wells, 48h Red Storm Cones & Badges [1]–[6])",
-            "subtitle": "Deep Blue = Deepwater (>1,000m)  |  Cyan Shelf = Shallow Shelf (<200m)  |  Tan = India Landmass  |  Scroll to Zoom & Hover any Well/Rig",
-            "color": "#F8FAFC",
-            "subtitleColor": "#93C5FD",
+            "text": "PANEL A — INDIA EEZ STRATEGIC COMMAND MAP (20 Rigs, 120 Wells, 48h Weather & Routes [1]–[6])",
+            "subtitle": "Blue = Operating Units  |  Red Cones = 48h Swell Alert  |  Green Arrows = Safe Relocation Routes",
+            "color": "#0F172A",
+            "subtitleColor": "#475569",
             "fontSize": 13,
             "subtitleFontSize": 11,
         },
@@ -227,9 +224,9 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 "data": {"values": _SHELF_BATHYMETRY_VALUES},
                 "mark": {
                     "type": "line",
-                    "fill": "#134E7A",
-                    "fillOpacity": 0.65,
-                    "stroke": "#38BDF8",
+                    "fill": "#E0F2FE",
+                    "fillOpacity": 0.85,
+                    "stroke": "#BAE6FD",
                     "strokeDash": [4, 3],
                     "strokeWidth": 1.2,
                 },
@@ -241,9 +238,9 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "axis": {
                             "title": "Longitude (°E — Arabian Sea / Mumbai High ➔ Bay of Bengal / KG-DWN Basin)",
                             "grid": True,
-                            "gridColor": "#1E3A8A",
-                            "labelColor": "#E2E8F0",
-                            "titleColor": "#93C5FD",
+                            "gridColor": "#E2E8F0",
+                            "labelColor": "#64748B",
+                            "titleColor": "#334155",
                         },
                     },
                     "y": {
@@ -253,24 +250,24 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "axis": {
                             "title": "Latitude (°N — Indian EEZ)",
                             "grid": True,
-                            "gridColor": "#1E3A8A",
-                            "labelColor": "#E2E8F0",
-                            "titleColor": "#93C5FD",
+                            "gridColor": "#E2E8F0",
+                            "labelColor": "#64748B",
+                            "titleColor": "#334155",
                         },
                     },
                     "order": {"field": "order", "type": "quantitative"},
                 },
             },
-            # Layer 2: India & Sri Lanka Landmass (Golden-Tan Terrain Fill + Pan/Zoom Bind)
+            # Layer 2: India & Sri Lanka Landmass (Clean Gray-Slate Fill + Pan/Zoom Bind)
             {
                 "params": [{"name": "eez_pan_zoom", "select": "interval", "bind": "scales"}],
                 "data": {"values": coastline_values},
                 "mark": {
                     "type": "line",
-                    "fill": "#C89D66",
-                    "fillOpacity": 0.92,
-                    "stroke": "#FDE68A",
-                    "strokeWidth": 2.0,
+                    "fill": "#CBD5E1",
+                    "fillOpacity": 0.95,
+                    "stroke": "#94A3B8",
+                    "strokeWidth": 1.5,
                 },
                 "encoding": {
                     "x": {"field": "longitude", "type": "quantitative"},
@@ -470,12 +467,12 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
         return {
             "width": 310,
             "height": 235,
-            "view": {"fill": "#0B2545", "stroke": "#38BDF8", "strokeWidth": 1.5},
+            "view": {"fill": "#F0F4F8", "stroke": "#CBD5E1", "strokeWidth": 1.5},
             "title": {
                 "text": title_str,
                 "subtitle": subtitle_str,
-                "color": "#FACC15",
-                "subtitleColor": "#E2E8F0",
+                "color": "#0F172A",
+                "subtitleColor": "#475569",
                 "fontSize": 11,
                 "subtitleFontSize": 10,
             },
@@ -487,7 +484,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "type": "circle",
                         "size": 18000,
                         "color": zone_color,
-                        "opacity": 0.25,
+                        "opacity": 0.22,
                         "stroke": stroke_color,
                         "strokeDash": [5, 4],
                         "strokeWidth": 2.0,
@@ -497,20 +494,20 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                             "field": "lon",
                             "type": "quantitative",
                             "scale": {"domain": lon_domain},
-                            "axis": {"title": "Longitude (°E)", "grid": True, "gridColor": "#1E3A8A", "labelColor": "#CBD5E1", "titleColor": "#93C5FD"},
+                            "axis": {"title": "Longitude (°E)", "grid": True, "gridColor": "#E2E8F0", "labelColor": "#64748B", "titleColor": "#334155"},
                         },
                         "y": {
                             "field": "lat",
                             "type": "quantitative",
                             "scale": {"domain": lat_domain},
-                            "axis": {"title": "Latitude (°N)", "grid": True, "gridColor": "#1E3A8A", "labelColor": "#CBD5E1", "titleColor": "#93C5FD"},
+                            "axis": {"title": "Latitude (°N)", "grid": True, "gridColor": "#E2E8F0", "labelColor": "#64748B", "titleColor": "#334155"},
                         },
                     },
                 },
                 # Trajectory Lines (Green Wet Tow for [1]-[4], Amber/Red Helicopter Crew Evac for [5]-[6])
                 {
                     "data": {"values": segments},
-                    "mark": {"type": "rule", "color": stroke_color, "strokeWidth": 4.0},
+                    "mark": {"type": "rule", "color": stroke_color, "strokeWidth": 3.5},
                     "encoding": {
                         "x": {"field": "orig_lon", "type": "quantitative"},
                         "y": {"field": "orig_lat", "type": "quantitative"},
@@ -526,7 +523,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "shape": "diamond",
                         "filled": True,
                         "size": 260,
-                        "color": "#10B981",
+                        "color": "#16A34A",
                         "stroke": "#FFFFFF",
                         "strokeWidth": 1.8,
                     },
@@ -546,8 +543,8 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                     "mark": {
                         "type": "circle",
                         "size": 420,
-                        "color": "#FACC15",
-                        "stroke": "#0F172A",
+                        "color": "#FFFFFF",
+                        "stroke": "#16A34A" if "WESTERN" in title_str else "#DC2626",
                         "strokeWidth": 2.0,
                     },
                     "encoding": {
@@ -555,7 +552,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "y": {"field": "orig_lat", "type": "quantitative"},
                     },
                 },
-                # Bold Badge Numbers Inside Yellow Circles
+                # Bold Badge Numbers Inside Circles
                 {
                     "data": {"values": segments},
                     "mark": {"type": "text", "fontSize": 12, "fontWeight": "bold", "color": "#0F172A"},
@@ -572,7 +569,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "type": "text",
                         "fontSize": 10,
                         "fontWeight": "bold",
-                        "color": "#86EFAC",
+                        "color": "#0F172A",
                         "dy": 14,
                     },
                     "encoding": {
@@ -595,7 +592,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 71.55,
                 19.45,
                 zone_color="#10B981",
-                stroke_color="#22C55E",
+                stroke_color="#16A34A",
             ),
             _build_basin_zoom_panel(
                 "PANEL B2 — BAY OF BENGAL (LIVE SWELL Hs=2.80–4.98m): EVAC & HANG-OFF [5]–[6]",
@@ -606,7 +603,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 84.20,
                 18.10,
                 zone_color="#EF4444",
-                stroke_color="#F59E0B",
+                stroke_color="#DC2626",
             ),
         ]
     }
@@ -615,16 +612,16 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
     weather_panel: dict[str, Any] = {
         "width": 660,
         "height": 140,
-        "view": {"fill": "#0B2545", "stroke": "#38BDF8", "strokeWidth": 1.5},
+        "view": {"fill": "#FFFFFF", "stroke": "#CBD5E1", "strokeWidth": 1.5},
         "title": {
             "text": "PANEL C — 48-Hour Google WeatherNext (GenCast + GraphCast) Significant Wave Height (Hs) vs 2.5m Unlatch Safety Cutoff",
-            "color": "#F8FAFC",
+            "color": "#0F172A",
             "fontSize": 12,
         },
         "data": {"values": weather_rows},
         "layer": [
             {
-                "mark": {"type": "area", "color": "#38BDF8", "opacity": 0.22},
+                "mark": {"type": "area", "color": "#E0F2FE", "opacity": 0.6},
                 "encoding": {
                     "x": {
                         "field": "hour",
@@ -632,9 +629,9 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "axis": {
                             "title": "Forecast Horizon (+Hours Ahead)",
                             "grid": True,
-                            "gridColor": "#1E3A8A",
-                            "labelColor": "#E2E8F0",
-                            "titleColor": "#93C5FD",
+                            "gridColor": "#E2E8F0",
+                            "labelColor": "#64748B",
+                            "titleColor": "#334155",
                         },
                     },
                     "y": {
@@ -643,16 +640,16 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                         "axis": {
                             "title": "Wave Height Hs (m)",
                             "grid": True,
-                            "gridColor": "#1E3A8A",
-                            "labelColor": "#E2E8F0",
-                            "titleColor": "#93C5FD",
+                            "gridColor": "#E2E8F0",
+                            "labelColor": "#64748B",
+                            "titleColor": "#334155",
                         },
                     },
                     "y2": {"field": "hs_p95"},
                 },
             },
             {
-                "mark": {"type": "line", "color": "#38BDF8", "strokeWidth": 2.8, "point": {"filled": True, "size": 65, "color": "#FACC15"}},
+                "mark": {"type": "line", "color": "#1A73E8", "strokeWidth": 2.8, "point": {"filled": True, "size": 65, "color": "#1A73E8"}},
                 "encoding": {
                     "x": {"field": "hour", "type": "quantitative"},
                     "y": {"field": "hs_m", "type": "quantitative"},
@@ -664,7 +661,7 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
                 },
             },
             {
-                "mark": {"type": "rule", "color": "#EF4444", "strokeDash": [5, 4], "strokeWidth": 2.4},
+                "mark": {"type": "rule", "color": "#DC2626", "strokeDash": [5, 4], "strokeWidth": 2.4},
                 "encoding": {"y": {"field": "threshold_m", "type": "quantitative"}},
             },
         ],
@@ -672,8 +669,8 @@ def build_rig_fleet_map_spec(summary: FleetSummary) -> dict[str, Any]:
 
     return {
         "$schema": VEGA_LITE_SCHEMA,
-        "description": "ORMWO 3-Tier Bathymetric Command Infographic: India EEZ Map + Mumbai High & KG-DWN Basin Escape Zooms + 48h Wave Forecast",
-        "background": "#07192F",
+        "description": "ORMWO 3-Tier Command Infographic: India EEZ Map + Mumbai High & KG-DWN Basin Escape Zooms + 48h Wave Forecast",
+        "background": "#FFFFFF",
         "padding": {"left": 12, "right": 12, "top": 12, "bottom": 12},
         "vconcat": [
             main_map_panel,
