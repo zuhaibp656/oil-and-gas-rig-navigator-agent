@@ -3,1180 +3,1085 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ORMWO — Google Cloud & ADK Interactive Executive Presentation</title>
+<title>ORMWO — Executive Presentation & Technical Blueprints</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --g-blue: #1a73e8;
-    --g-blue-soft: #e8f0fe;
-    --g-red: #d93025;
-    --g-red-soft: #fce8e6;
-    --g-yellow: #f9ab00;
-    --g-yellow-soft: #fef7e0;
-    --g-green: #1e8e3e;
-    --g-green-soft: #e6f4ea;
-    --bg-main: #f8f9fa;
-    --bg-card: #ffffff;
-    --text-primary: #202124;
-    --text-secondary: #5f6368;
-    --text-muted: #80868b;
-    --border-hairline: #dadce0;
-    --shadow-card: 0 1px 3px rgba(60,64,67,0.12), 0 4px 12px rgba(60,64,67,0.06);
-    --shadow-hover: 0 4px 16px rgba(26,115,232,0.14);
+    --g-blue-light: #e8f0fe;
+    --g-red: #ea4335;
+    --g-red-light: #fce8e6;
+    --g-yellow: #fbbc04;
+    --g-yellow-light: #fef7e0;
+    --g-green: #34a853;
+    --g-green-light: #e6f4ea;
+    --g-dark: #202124;
+    --g-gray: #5f6368;
+    --g-border: #dadce0;
+    --g-surface: #ffffff;
+    --g-bg: #f8f9fa;
   }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg-main);
-    color: var(--text-primary);
+    background: var(--g-bg);
+    color: var(--g-dark);
     height: 100vh;
     width: 100vw;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    user-select: none;
   }
 
-  /* 4-Color Google Top Brand Strip */
-  .google-color-bar {
+  /* Top 4-Color Google Brand Bar */
+  .google-bar {
     height: 4px;
     width: 100%;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     flex-shrink: 0;
   }
-  .google-color-bar div:nth-child(1) { background: #4285F4; }
-  .google-color-bar div:nth-child(2) { background: #EA4335; }
-  .google-color-bar div:nth-child(3) { background: #FBBC04; }
-  .google-color-bar div:nth-child(4) { background: #34A853; }
+  .google-bar div:nth-child(1) { background: #4285F4; }
+  .google-bar div:nth-child(2) { background: #EA4335; }
+  .google-bar div:nth-child(3) { background: #FBBC04; }
+  .google-bar div:nth-child(4) { background: #34A853; }
 
-  /* Top Navigation Header */
-  header.deck-header {
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border-hairline);
-    padding: 12px 28px;
+  /* Minimal Executive Navigation Bar */
+  header.nav-header {
+    background: var(--g-surface);
+    border-bottom: 1px solid var(--g-border);
+    padding: 10px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-shrink: 0;
-    z-index: 20;
+    z-index: 50;
   }
 
-  .brand-left {
+  .logo-block {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .google-dots {
-    display: inline-flex;
-    gap: 5px;
-    align-items: center;
+  .google-g-icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
   }
-  .google-dots span {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  .google-dots span:nth-child(1) { background: #4285F4; }
-  .google-dots span:nth-child(2) { background: #EA4335; }
-  .google-dots span:nth-child(3) { background: #FBBC04; }
-  .google-dots span:nth-child(4) { background: #34A853; }
 
-  .brand-title {
+  .deck-title {
+    font-family: 'Google Sans', 'Inter', sans-serif;
     font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: var(--g-dark);
     letter-spacing: -0.01em;
   }
-  .brand-subtitle {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 400;
-  }
-
-  /* Slide Step Pills */
-  .step-pills {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .step-pill {
-    background: transparent;
-    border: 1px solid var(--border-hairline);
-    color: var(--text-secondary);
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s ease;
+  .deck-subtitle {
+    font-size: 11.5px;
+    color: var(--g-gray);
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .step-pill:hover {
-    background: var(--g-blue-soft);
-    color: var(--g-blue);
-    border-color: #d2e3fc;
+
+  /* Top Navigation Slide Tabs */
+  .slide-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f3f4;
+    padding: 4px;
+    border-radius: 999px;
   }
-  .step-pill.active {
-    background: var(--g-blue);
-    color: #ffffff;
-    border-color: var(--g-blue);
+  .slide-tab {
+    background: transparent;
+    border: none;
+    color: var(--g-gray);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 600;
-    box-shadow: 0 2px 6px rgba(26,115,232,0.28);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .step-pill .num {
+  .slide-tab:hover {
+    color: var(--g-blue);
+    background: rgba(255,255,255,0.7);
+  }
+  .slide-tab.active {
+    background: var(--g-surface);
+    color: var(--g-blue);
+    box-shadow: 0 1px 3px rgba(60,64,67,0.18);
+  }
+  .slide-tab .tab-num {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    opacity: 0.85;
+    opacity: 0.75;
   }
 
-  /* Main Horizontal Slide Viewport */
-  .deck-viewport {
+  /* Main Slide Stage */
+  main.slide-stage {
     flex: 1;
     position: relative;
     overflow: hidden;
-    width: 100%;
-  }
-
-  .slides-track {
-    display: flex;
-    height: 100%;
-    width: 600%;
-    transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    background: #fdfdfd;
   }
 
   .slide {
-    width: calc(100% / 6);
-    height: 100%;
-    overflow-y: auto;
-    padding: 28px 44px 88px 44px;
-    display: flex;
-    justify-content: center;
-  }
-
-  .slide-inner {
+    display: none;
     width: 100%;
-    max-width: 1320px;
+    height: 100%;
+    padding: 24px 36px 72px 36px;
+    overflow-y: auto;
+    animation: fadeIn 0.22s ease-in-out;
+  }
+  .slide.active {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
-  /* Slide Header Typography */
-  .slide-eyebrow {
-    display: inline-flex;
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Header inside slide */
+  .slide-title-bar {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--g-blue);
+    justify-content: space-between;
+    border-bottom: 1px solid #edf0f2;
+    padding-bottom: 12px;
+    flex-shrink: 0;
   }
-  .slide-headline {
-    font-size: 28px;
+  .slide-eyebrow {
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--text-primary);
-    line-height: 1.22;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--g-blue);
+    margin-bottom: 2px;
   }
-  .slide-lead {
-    font-size: 15px;
-    color: var(--text-secondary);
-    line-height: 1.55;
-    max-width: 980px;
+  .slide-heading {
+    font-family: 'Google Sans', 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--g-dark);
+    letter-spacing: -0.015em;
+  }
+  .slide-caption {
+    font-size: 13px;
+    color: var(--g-gray);
+    margin-top: 2px;
   }
 
-  /* Cards & Grid Layout */
-  .grid-2 {
+  /* Grid Layouts with zero wasted whitespace */
+  .split-2 {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 20px;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
+  }
+  .split-even {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    flex: 1;
   }
   .grid-3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 14px;
   }
   .grid-4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    gap: 12px;
   }
 
-  .g-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-hairline);
+  /* Sleek White Cards */
+  .panel-card {
+    background: var(--g-surface);
+    border: 1px solid var(--g-border);
     border-radius: 12px;
-    padding: 20px;
-    box-shadow: var(--shadow-card);
-    transition: all 0.2s ease;
+    padding: 16px 18px;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
   }
-  .g-card.interactive {
+  .panel-card.interactive {
     cursor: pointer;
+    transition: all 0.18s ease;
   }
-  .g-card.interactive:hover {
+  .panel-card.interactive:hover {
     border-color: var(--g-blue);
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 4px 12px rgba(26,115,232,0.14);
     transform: translateY(-2px);
   }
-  .g-card.interactive.selected {
+  .panel-card.interactive.active {
     border: 2px solid var(--g-blue);
     background: #fbfdff;
   }
 
-  /* KPI Stat Pills */
-  .kpi-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-  }
-  .kpi-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border-hairline);
-    border-radius: 10px;
-    padding: 14px 18px;
-    border-top: 3px solid var(--g-blue);
-  }
-  .kpi-box.red { border-top-color: var(--g-red); }
-  .kpi-box.yellow { border-top-color: var(--g-yellow); }
-  .kpi-box.green { border-top-color: var(--g-green); }
-  .kpi-val {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-  }
-  .kpi-lbl {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-
-  /* Badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 600;
-  }
-  .badge-blue { background: var(--g-blue-soft); color: var(--g-blue); }
-  .badge-green { background: var(--g-green-soft); color: var(--g-green); }
-  .badge-red { background: var(--g-red-soft); color: var(--g-red); }
-  .badge-yellow { background: var(--g-yellow-soft); color: #b06000; }
-
-  /* Interactive Detail Inspector Box */
-  .inspector-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border-hairline);
-    border-left: 4px solid var(--g-blue);
-    border-radius: 12px;
-    padding: 20px 24px;
-    box-shadow: var(--shadow-card);
-  }
-
-  /* Code / Contract Block */
-  pre.code-box {
-    background: #1e1e1e;
-    color: #e8eaed;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    padding: 14px 16px;
-    border-radius: 8px;
-    overflow-x: auto;
-    line-height: 1.5;
-    margin-top: 10px;
-  }
-
-  /* Interactive Architecture Nodes */
-  .arch-flow {
+  /* KPI Badges */
+  .kpi-chip-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
   }
-  .arch-node {
-    background: var(--bg-card);
-    border: 1px solid var(--border-hairline);
-    border-radius: 10px;
-    padding: 14px;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    position: relative;
+  .kpi-chip {
+    background: var(--g-surface);
+    border: 1px solid var(--g-border);
+    border-left: 4px solid var(--g-blue);
+    border-radius: 8px;
+    padding: 10px 14px;
   }
-  .arch-node:hover {
-    border-color: var(--g-blue);
-    transform: translateY(-2px);
+  .kpi-chip.red { border-left-color: var(--g-red); }
+  .kpi-chip.green { border-left-color: var(--g-green); }
+  .kpi-chip.yellow { border-left-color: var(--g-yellow); }
+  .kpi-number {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--g-dark);
+    font-family: 'Google Sans', 'Inter', sans-serif;
   }
-  .arch-node.active {
-    border: 2px solid var(--g-blue);
-    background: var(--g-blue-soft);
-  }
-  .arch-node-step {
-    font-family: 'JetBrains Mono', monospace;
+  .kpi-label {
     font-size: 11px;
-    color: var(--g-blue);
-    font-weight: 600;
-  }
-  .arch-node-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    margin: 4px 0;
-    color: var(--text-primary);
-  }
-  .arch-node-desc {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    line-height: 1.4;
+    color: var(--g-gray);
+    margin-top: 2px;
   }
 
-  /* Clean Copy-Ready Table */
-  table.clean-table {
+  /* Technical Blueprint Vector Canvas */
+  .blueprint-box {
+    background: #0d1b2a;
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  .blueprint-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(to right, rgba(66, 133, 244, 0.08) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(66, 133, 244, 0.08) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .blueprint-tag {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: #4da3ff;
+    letter-spacing: 0.05em;
+    background: rgba(13, 27, 42, 0.85);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #1e3a5f;
+  }
+
+  /* Interactive Hotspots on Diagrams */
+  .hotspot-pill {
+    background: var(--g-surface);
+    border: 1px solid var(--g-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .hotspot-pill:hover {
+    border-color: var(--g-blue);
+    background: var(--g-blue-light);
+  }
+  .hotspot-pill.active {
+    border: 2px solid var(--g-blue);
+    background: var(--g-blue-light);
+  }
+  .hotspot-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--g-dark);
+  }
+  .hotspot-desc {
+    font-size: 11px;
+    color: var(--g-gray);
+    margin-top: 3px;
+    line-height: 1.35;
+  }
+
+  /* High-Density Compact Table */
+  table.compact-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
-    background: var(--bg-card);
-    border-radius: 10px;
+    font-size: 12px;
+    background: var(--g-surface);
+    border: 1px solid var(--g-border);
+    border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--border-hairline);
   }
-  table.clean-table th {
+  table.compact-table th {
     background: #f1f3f4;
-    color: var(--text-primary);
+    color: var(--g-dark);
     font-weight: 600;
     text-align: left;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-hairline);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--g-border);
   }
-  table.clean-table td {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border-hairline);
-    color: var(--text-primary);
+  table.compact-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #edf0f2;
+    color: var(--g-dark);
   }
-  table.clean-table tr:last-child td {
-    border-bottom: none;
-  }
-  table.clean-table tr:hover td {
+  table.compact-table tr:hover td {
     background: #f8fbff;
   }
 
-  /* Bottom Navigation Footer Bar */
-  footer.deck-footer {
+  /* Pill Badges */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .pill-green { background: var(--g-green-light); color: var(--g-green); }
+  .pill-red { background: var(--g-red-light); color: var(--g-red); }
+  .pill-blue { background: var(--g-blue-light); color: var(--g-blue); }
+  .pill-yellow { background: var(--g-yellow-light); color: #b06000; }
+
+  /* Bottom Controls Footer */
+  footer.controls-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid var(--border-hairline);
-    padding: 12px 36px;
+    height: 52px;
+    background: var(--g-surface);
+    border-top: 1px solid var(--g-border);
+    padding: 0 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    z-index: 30;
+    z-index: 50;
   }
 
-  .nav-btn {
+  .btn-nav {
     background: var(--g-blue);
     color: #ffffff;
     border: none;
-    padding: 9px 20px;
+    padding: 8px 20px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.18s ease;
-    box-shadow: 0 2px 6px rgba(26,115,232,0.25);
+    transition: all 0.15s ease;
   }
-  .nav-btn:hover:not(:disabled) {
+  .btn-nav:hover:not(:disabled) {
     background: #1557b0;
-    transform: translateY(-1px);
   }
-  .nav-btn.secondary {
-    background: #ffffff;
-    color: var(--text-primary);
-    border: 1px solid var(--border-hairline);
-    box-shadow: none;
+  .btn-nav.ghost {
+    background: transparent;
+    color: var(--g-dark);
+    border: 1px solid var(--g-border);
   }
-  .nav-btn.secondary:hover:not(:disabled) {
+  .btn-nav.ghost:hover:not(:disabled) {
     background: #f1f3f4;
   }
-  .nav-btn:disabled {
-    opacity: 0.4;
+  .btn-nav:disabled {
+    opacity: 0.35;
     cursor: not-allowed;
   }
 
-  .external-link-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 16px;
-    border-radius: 8px;
-    font-size: 13px;
+  .quick-link-btn {
+    font-size: 11.5px;
     font-weight: 600;
-    text-decoration: none;
-    background: var(--g-blue-soft);
     color: var(--g-blue);
-    border: 1px solid #d2e3fc;
-    transition: all 0.15s ease;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--g-blue-light);
+    transition: background 0.15s;
   }
-  .external-link-btn:hover {
-    background: var(--g-blue);
-    color: #ffffff;
+  .quick-link-btn:hover {
+    background: #d2e3fc;
   }
 
-  @media (max-width: 1024px) {
-    .grid-2, .grid-3, .grid-4, .kpi-row, .arch-flow {
-      grid-template-columns: 1fr;
-    }
-    .slide {
-      padding: 20px 20px 90px 20px;
-    }
+  /* Code Block in Architecture */
+  pre.compact-code {
+    background: #1e1e1e;
+    color: #e8eaed;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.45;
   }
 </style>
 </head>
 <body>
 
-<div class="google-color-bar">
+<div class="google-bar">
   <div></div><div></div><div></div><div></div>
 </div>
 
-<header class="deck-header">
-  <div class="brand-left">
-    <div class="google-dots">
-      <span></span><span></span><span></span><span></span>
-    </div>
+<header class="nav-header">
+  <div class="logo-block">
+    <svg class="google-g-icon" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3h3.86c2.26-2.09 3.685-5.17 3.685-9.09z"/>
+      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.37 24 12 24z"/>
+      <path fill="#FBBC04" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/>
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
+    </svg>
     <div>
-      <div class="brand-title">Offshore Rig Mobilization & Weather Optimizer (ORMWO)</div>
-      <div class="brand-subtitle">Google Cloud Vertex AI Agent Engine · ADK + A2UI v0.9 · Grounded in CAG Audit Report #15117</div>
+      <div class="deck-title">ORMWO — Offshore Rig Mobilization & Weather Optimizer</div>
+      <div class="deck-subtitle">
+        <span>Google Cloud Vertex AI Agent Engine</span>
+        <span>•</span>
+        <span>Grounded in CAG Audit Report #15117</span>
+      </div>
     </div>
   </div>
 
-  <div class="step-pills" id="stepPills">
-    <button class="step-pill active" onclick="goToSlide(0)"><span class="num">01</span> Problem & CAG #15117</button>
-    <button class="step-pill" onclick="goToSlide(1)"><span class="num">02</span> Rig Move Physics</button>
-    <button class="step-pill" onclick="goToSlide(2)"><span class="num">03</span> User Personas</button>
-    <button class="step-pill" onclick="goToSlide(3)"><span class="num">04</span> ADK Architecture</button>
-    <button class="step-pill" onclick="goToSlide(4)"><span class="num">05</span> Live EEZ Fleet [1]–[6]</button>
-    <button class="step-pill" onclick="goToSlide(5)"><span class="num">06</span> Impact & GE Prompts</button>
+  <div class="slide-tabs">
+    <button class="slide-tab active" onclick="jumpTo(0)"><span class="tab-num">01</span> Overview & Problem</button>
+    <button class="slide-tab" onclick="jumpTo(1)"><span class="tab-num">02</span> Rig Physics Blueprints</button>
+    <button class="slide-tab" onclick="jumpTo(2)"><span class="tab-num">03</span> Metocean & Basin Gates</button>
+    <button class="slide-tab" onclick="jumpTo(3)"><span class="tab-num">04</span> Fleet Directives [1]–[6]</button>
+    <button class="slide-tab" onclick="jumpTo(4)"><span class="tab-num">05</span> ADK Architecture</button>
+    <button class="slide-tab" onclick="jumpTo(5)"><span class="tab-num">06</span> Live Try-It Prompts</button>
   </div>
 </header>
 
-<main class="deck-viewport">
-  <div class="slides-track" id="slidesTrack">
+<main class="slide-stage">
 
-    <!-- ==================== SLIDE 1: THE PROBLEM & CAG REPORT #15117 ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
+  <!-- ==================== SLIDE 1: PROBLEM & CAG AUDIT ==================== -->
+  <section class="slide active" id="slide-0">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 01 · Executive Briefing</div>
+        <div class="slide-heading">Eliminating ₹512 Crore in Avoidable Idle Rig Non-Productive Time</div>
+        <div class="slide-caption">Based on Comptroller and Auditor General of India (CAG) Performance Audit Report #15117 ("Utilisation of Rigs in ONGC")</div>
+      </div>
+      <span class="pill pill-red">426.5 Avoidable Rig-Days</span>
+    </div>
+
+    <div class="kpi-chip-row">
+      <div class="kpi-chip red">
+        <div class="kpi-number">₹1.0 – ₹1.2 Cr</div>
+        <div class="kpi-label">Daily Rig Operating & Charter Cost</div>
+      </div>
+      <div class="kpi-chip yellow">
+        <div class="kpi-number">1.50 m (5 ft)</div>
+        <div class="kpi-label">MWS Leg Punch-Through Swell Limit</div>
+      </div>
+      <div class="kpi-chip">
+        <div class="kpi-number">34 – 42 Hours</div>
+        <div class="kpi-label">Minimum Jack-Up Move & Pre-Load Duration</div>
+      </div>
+      <div class="kpi-chip green">
+        <div class="kpi-number">₹71.50 Cr</div>
+        <div class="kpi-label">Total NPT Protected Across Rigs [1]–[6]</div>
+      </div>
+    </div>
+
+    <div class="split-2">
+      <div class="panel-card" style="justify-content:space-between;">
         <div>
-          <span class="slide-eyebrow">01 · Problem Statement & Government Audit Origin</span>
-          <h1 class="slide-headline">Eliminating ₹512 Crore in Avoidable Offshore Rig Non-Productive Time (NPT)</h1>
-          <p class="slide-lead">
-            Built directly on findings from the <strong>Comptroller and Auditor General of India (CAG) Performance Audit Report No. 15117</strong>
-            (<em>"Utilisation of Rigs in Oil and Natural Gas Corporation Limited"</em>), which documented massive financial losses when high-dayrate offshore rigs (`₹1.0–₹1.2 Cr/day`) sat idle between well completions, statutory clearances, and monsoon weather windows.
-          </p>
-        </div>
-
-        <div class="kpi-row">
-          <div class="kpi-box red">
-            <div class="kpi-val">₹1.0 – ₹1.2 Cr</div>
-            <div class="kpi-lbl">Daily Offshore Rig Operating & Charter Cost (`$135k–$150k/day`)</div>
-          </div>
-          <div class="kpi-box yellow">
-            <div class="kpi-val">426.5 Rig-Days</div>
-            <div class="kpi-lbl">Avoidable Waiting-on-Location & Clearance NPT Cited in CAG #15117</div>
-          </div>
-          <div class="kpi-box">
-            <div class="kpi-val">1.50 m (5 ft)</div>
-            <div class="kpi-lbl">Strict MWS Wave Ceiling (`Hs`) for Jack-Up Spudcan Extraction</div>
-          </div>
-          <div class="kpi-box green">
-            <div class="kpi-val">₹71.50 Cr</div>
-            <div class="kpi-lbl">Fleet Exposure Protected Across Active Directives `[1]–[6]`</div>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">
-              👇 Click any CAG Report #15117 Audit Finding below to inspect root causes & how ORMWO solves it:
+          <div style="font-size:12px; font-weight:700; color:var(--g-blue); text-transform:uppercase;">The Three Audit Traps Identified by CAG Report #15117</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+            <div style="background:#fce8e6; border-left:3px solid var(--g-red); padding:10px 12px; border-radius:6px;">
+              <strong style="font-size:12.5px; color:var(--g-red);">1. Mobilizing to Wells Lacking MoEFCC EC or Defence NOC</strong>
+              <p style="font-size:11.5px; color:#3c4043; margin-top:2px;">Rigs towed to the nearest geographical well sat idle for weeks waiting for statutory forest/environmental clearance, Navy NOC, or pre-jetted 30" conductors.</p>
             </div>
-
-            <div class="g-card interactive selected" id="cagCard0" onclick="selectCagFinding(0)">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="badge badge-red">Finding 1 · Statutory & EC Bottlenecks</span>
-                <span style="font-size:12px; font-weight:600; color:var(--g-red);">₹218 Cr Impact</span>
-              </div>
-              <h3 style="font-size:16px; margin:8px 0 4px 0;">Rigs Mobilized to Wells Lacking MoEFCC EC or Defence NOC</h3>
-              <p style="font-size:13px; color:var(--text-secondary);">
-                Rigs finished drilling a well (`WELL_COMPLETED`) and were towed to the geographically closest location—only to sit idle for weeks because the target well lacked Environmental Clearance (`EC`), DRDO/Navy `NOC`, or a `500m` subsea pipeline buffer.
-              </p>
+            <div style="background:#fef7e0; border-left:3px solid #f9ab00; padding:10px 12px; border-radius:6px;">
+              <strong style="font-size:12.5px; color:#b06000;">2. Missing Calm MWS Weather Windows (Hs ≤ 1.50m)</strong>
+              <p style="font-size:11.5px; color:#3c4043; margin-top:2px;">Failure to synchronize well completion with forecast calm windows trapped rigs on location throughout monsoon swells at full charter hire.</p>
             </div>
-
-            <div class="g-card interactive" id="cagCard1" onclick="selectCagFinding(1)">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="badge badge-yellow">Finding 2 · Monsoon & MWS Sea-State Mismatch</span>
-                <span style="font-size:12px; font-weight:600; color:#b06000;">₹184 Cr Impact</span>
-              </div>
-              <h3 style="font-size:16px; margin:8px 0 4px 0;">Missing Calm MWS Windows (`Hs ≤ 1.50m`) & Storm Riser Damage Risk</h3>
-              <p style="font-size:13px; color:var(--text-secondary);">
-                Delayed tug coordination caused completed rigs to miss 38-hour calm sea windows (`Hs ≤ 1.50m`), trapping them on location when swells built above `2.5m`, while deepwater drillships lacked automated 48h LMRP disconnect & helicopter evacuation triggers.
-              </p>
-            </div>
-
-            <div class="g-card interactive" id="cagCard2" onclick="selectCagFinding(2)">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="badge badge-blue">Finding 3 · Fragmented Fleet & Tug Dispatch</span>
-                <span style="font-size:12px; font-weight:600; color:var(--g-blue);">₹110 Cr Impact</span>
-              </div>
-              <h3 style="font-size:16px; margin:8px 0 4px 0;">Manual Spreadsheet Planning Across 20 Rigs & 120 Candidate Wells</h3>
-              <p style="font-size:13px; color:var(--text-secondary);">
-                Well-to-well sequence decisions were made in isolated silos without real-time ECMWF/Open-Meteo wave feeds or Monte Carlo wet-tow simulations (`3× AHTS 150T Bollard Pull Tugs`).
-              </p>
+            <div style="background:#e8f0fe; border-left:3px solid var(--g-blue); padding:10px 12px; border-radius:6px;">
+              <strong style="font-size:12.5px; color:var(--g-blue);">3. Disjointed Marine (3× AHTS Tugs) & Aviation (Heli) Dispatch</strong>
+              <p style="font-size:11.5px; color:#3c4043; margin-top:2px;">Tug coordination delays created waiting-on-tug NPT, while storm demobilizations lacked automated crew evacuation schedules.</p>
             </div>
           </div>
-
-          <div class="inspector-panel" id="cagInspector">
-            <!-- Dynamically populated by selectCagFinding() -->
-          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--g-gray); border-top:1px solid #edf0f2; padding-top:8px;">
+          Primary Document: <a href="https://cag.gov.in/en/audit-report/details/15117" target="_blank" style="color:var(--g-blue); text-decoration:none; font-weight:600;">CAG Report #15117 ("Utilisation of Rigs in ONGC") ↗</a>
         </div>
       </div>
-    </section>
 
-    <!-- ==================== SLIDE 2: OFFSHORE RIG PHYSICS & TWO USE CASES ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
-        <div>
-          <span class="slide-eyebrow">02 · Real-World Petroleum Engineering & DNV-ST-N001 MWS Rules</span>
-          <h1 class="slide-headline">Why Active Rigs NEVER Move in a 48h Storm vs. When Rigs DO Move</h1>
-          <p class="slide-lead">
-            A fundamental engineering distinction built into ORMWO: <strong>You cannot move an offshore rig to another well in 48 hours to escape an incoming cyclone.</strong> Click between the two operational regimes below to explore the physics and hour-by-hour SOPs:
-          </p>
-        </div>
-
-        <div style="display:flex; gap:12px;">
-          <button class="nav-btn" id="modeBtnA" onclick="setEngineeringMode('A')" style="background:var(--g-red);">
-            🔴 Use Case A: Active Storm / High Swell (Hs &gt; 2.50m — Bay of Bengal Today)
-          </button>
-          <button class="nav-btn secondary" id="modeBtnB" onclick="setEngineeringMode('B')">
-            🟢 Use Case B: Calm MWS Window Completed-Well Move (Hs ≤ 1.50m — Mumbai High Today)
-          </button>
-        </div>
-
-        <div class="grid-2" id="engineeringComparisonBox">
-          <!-- Populated dynamically by setEngineeringMode() -->
+      <div class="panel-card" style="background:#f8fbff; border-color:#d2e3fc;">
+        <div style="font-size:12px; font-weight:700; color:var(--g-green); text-transform:uppercase;">The ORMWO High-Code Solution</div>
+        <p style="font-size:12px; color:var(--g-dark); line-height:1.5;">
+          A single production-grade AI Agent deployed on Vertex AI Agent Engine that couples:
+        </p>
+        <ul style="padding-left:16px; font-size:11.5px; color:var(--g-dark); line-height:1.6; display:flex; flex-direction:column; gap:6px;">
+          <li><strong>Live Metocean Telemetry:</strong> Real-time wave (`Hs`), swell period (`Tp`), and wind from Open-Meteo across 7 EEZ basins.</li>
+          <li><strong>DeepMind 48h Weather Forecasts:</strong> GenCast & GraphCast ensemble wave polygons to catch calm windows before swell builds.</li>
+          <li><strong>120-Well Statutory Registry:</strong> Strictly verifies MoEFCC EC, Defence NOC, and conductor readiness before selecting any destination well.</li>
+          <li><strong>10,000-Run Monte Carlo Optimizer:</strong> Computes P10/P50/P90 wet-tow durations with 3× AHTS tug bollard pull.</li>
+        </ul>
+        <div style="background:var(--g-surface); border:1px solid #d2e3fc; padding:10px; border-radius:8px; margin-top:auto;">
+          <div style="font-size:11px; font-weight:700; color:var(--g-blue);">CORE PRINCIPLE: ZERO MATH IN PROMPT TOKENS</div>
+          <div style="font-size:11px; color:var(--g-gray); margin-top:2px;">All physical constraints, coordinates, and cost simulations are computed deterministically in Python tools.</div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ==================== SLIDE 3: INTERACTIVE USER PERSONAS ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
-        <div>
-          <span class="slide-eyebrow">03 · Target Users & Decision Workflows</span>
-          <h1 class="slide-headline">Four Operational Personas Powered by One Deterministic Agent</h1>
-          <p class="slide-lead">
-            Click any persona card below to inspect how different stakeholders across ONGC, Marine Warranty Surveyors (MWS), and Aviation/Marine Logistics interact with ORMWO in <strong>Gemini Enterprise</strong>:
-          </p>
+  <!-- ==================== SLIDE 2: RIG BLUEPRINTS & OPERATIONAL LIMITS ==================== -->
+  <section class="slide" id="slide-1">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 02 · Offshore Rig Blueprints & Physical Constraints</div>
+        <div class="slide-heading">Why Active Rigs Never Move in a 48h Storm vs. When They Move</div>
+        <div class="slide-caption">Click the technical blueprints or hotspot components below to inspect real-world physical limits:</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="pill pill-red" onclick="switchBlueprint('jackup')">Jack-Up Rig Blueprint</button>
+        <button class="pill pill-blue" onclick="switchBlueprint('drillship')">DP3 Drillship Blueprint</button>
+      </div>
+    </div>
+
+    <div class="split-2">
+      <!-- Vector Technical Blueprint Canvas -->
+      <div class="blueprint-box">
+        <div class="blueprint-grid"></div>
+        <div class="blueprint-tag" id="bpTag">JACK-UP DRILLING UNIT · 300 FT LATTICE LEGS</div>
+
+        <!-- Jack-Up SVG Blueprint -->
+        <svg id="svgJackup" viewBox="0 0 540 320" width="100%" height="100%" style="padding:10px;">
+          <!-- Ocean Line & Wave -->
+          <path d="M0 200 Q 60 190, 120 200 T 240 200 T 360 200 T 480 200 T 540 200 L 540 320 L 0 320 Z" fill="rgba(66, 133, 244, 0.15)"/>
+          <line x1="0" y1="200" x2="540" y2="200" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="15" y="192" fill="#4da3ff" font-size="10" font-family="'JetBrains Mono'">WATERLINE (CALM Hs ≤ 1.50m / STORM Hs &gt; 2.50m)</text>
+
+          <!-- Seabed -->
+          <rect x="0" y="275" width="540" height="45" fill="#1b2a3a"/>
+          <line x1="0" y1="275" x2="540" y2="275" stroke="#78909c" stroke-width="2"/>
+          <text x="15" y="300" fill="#90a4ae" font-size="10" font-family="'JetBrains Mono'">SEABED CLAY / SILT LAYER (8–15m SPUDCAN PENETRATION)</text>
+
+          <!-- 3 Lattice Legs -->
+          <!-- Left Leg -->
+          <line x1="120" y1="35" x2="120" y2="285" stroke="#90caf9" stroke-width="4"/>
+          <line x1="140" y1="35" x2="140" y2="285" stroke="#90caf9" stroke-width="4"/>
+          <!-- Leg Cross Bracing -->
+          <path d="M120 40 L140 60 L120 80 L140 100 L120 120 L140 140 L120 160 L140 180 L120 200 L140 220 L120 240 L140 260 L120 280" stroke="#42a5f5" stroke-width="1.5" fill="none"/>
+          <!-- Spudcan Left -->
+          <polygon points="110,285 150,285 130,305" fill="#e53935" stroke="#ff8a80" stroke-width="2"/>
+
+          <!-- Right Leg -->
+          <line x1="380" y1="35" x2="380" y2="285" stroke="#90caf9" stroke-width="4"/>
+          <line x1="400" y1="35" x2="400" y2="285" stroke="#90caf9" stroke-width="4"/>
+          <path d="M380 40 L400 60 L380 80 L400 100 L380 120 L400 140 L380 160 L400 180 L380 200 L400 220 L380 240 L400 260 L380 280" stroke="#42a5f5" stroke-width="1.5" fill="none"/>
+          <!-- Spudcan Right -->
+          <polygon points="370,285 410,285 390,305" fill="#e53935" stroke="#ff8a80" stroke-width="2"/>
+
+          <!-- Jack-Up Hull (Elevated) -->
+          <rect x="90" y="120" width="340" height="35" rx="4" fill="#263238" stroke="#64b5f6" stroke-width="2"/>
+          <text x="210" y="142" fill="#ffffff" font-size="12" font-weight="700" font-family="'Inter'">JACK-UP HULL (ELEVATED)</text>
+
+          <!-- Cantilever & Derrick -->
+          <rect x="290" y="105" width="100" height="15" fill="#37474f"/>
+          <polygon points="320,105 360,105 340,30" fill="none" stroke="#ffb74d" stroke-width="2"/>
+          <text x="325" y="24" fill="#ffb74d" font-size="10" font-weight="700">DERRICK</text>
+
+          <!-- Warning Box on Punch Through -->
+          <rect x="180" y="165" width="160" height="28" rx="4" fill="rgba(234, 67, 53, 0.85)" stroke="#ea4335"/>
+          <text x="190" y="182" fill="#ffffff" font-size="9.5" font-weight="700" font-family="'JetBrains Mono'">⚠️ 1.50m (5ft) PUNCH-THROUGH LIMIT</text>
+        </svg>
+
+        <!-- DP3 Drillship SVG Blueprint (Hidden by default) -->
+        <svg id="svgDrillship" viewBox="0 0 540 320" width="100%" height="100%" style="padding:10px; display:none;">
+          <!-- Ocean Line -->
+          <rect x="0" y="90" width="540" height="230" fill="rgba(66, 133, 244, 0.12)"/>
+          <line x1="0" y1="90" x2="540" y2="90" stroke="#4da3ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+          <!-- Drillship Hull -->
+          <polygon points="60,90 440,90 410,130 90,130" fill="#263238" stroke="#90caf9" stroke-width="2"/>
+          <text x="190" y="115" fill="#ffffff" font-size="12" font-weight="700">DP3 DRILLSHIP HULL (1,500m WATER)</text>
+
+          <!-- Twin Derrick -->
+          <polygon points="230,90 270,90 250,25" fill="none" stroke="#ffb74d" stroke-width="2"/>
+          <!-- Helideck -->
+          <rect x="390" y="75" width="60" height="12" rx="2" fill="#1b5e20"/>
+          <text x="400" y="84" fill="#ffffff" font-size="8.5" font-weight="700">🚁 HELIDECK</text>
+
+          <!-- Azimuth Thrusters -->
+          <rect x="110" y="130" width="14" height="16" fill="#42a5f5"/>
+          <rect x="380" y="130" width="14" height="16" fill="#42a5f5"/>
+          <text x="135" y="142" fill="#90caf9" font-size="9" font-family="'JetBrains Mono'">DP3 AZIMUTH THRUSTERS (±0.5m STATION)</text>
+
+          <!-- Marine Riser -->
+          <line x1="250" y1="130" x2="250" y2="210" stroke="#ffb74d" stroke-width="3"/>
+          <text x="260" y="170" fill="#ffb74d" font-size="9.5" font-family="'JetBrains Mono'">1,500m MARINE RISER</text>
+
+          <!-- LMRP Disconnect Point -->
+          <rect x="235" y="210" width="30" height="18" fill="#e53935" stroke="#ffffff" stroke-width="1.5"/>
+          <text x="275" y="222" fill="#ff8a80" font-size="10" font-weight="700" font-family="'JetBrains Mono'">⚡ LMRP UNLATCH (45 SECONDS)</text>
+
+          <!-- Subsea BOP Stack -->
+          <rect x="230" y="235" width="40" height="45" rx="3" fill="#37474f" stroke="#90caf9" stroke-width="2"/>
+          <text x="280" y="258" fill="#4da3ff" font-size="9.5" font-weight="700">SUBSEA BOP (BLIND SHEAR RAMS)</text>
+
+          <!-- Seabed Wellhead -->
+          <rect x="0" y="285" width="540" height="35" fill="#1b2a3a"/>
+          <text x="15" y="305" fill="#78909c" font-size="10" font-family="'JetBrains Mono'">SEABED WELLHEAD (CLOSED & SECURED)</text>
+        </svg>
+      </div>
+
+      <!-- Right Column: Interactive Hotspot Details -->
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="hotspot-pill active" onclick="showHotspot('punch')">
+          <div class="hotspot-name">1. Spudcan Seabed Penetration & Leg Punch-Through</div>
+          <div class="hotspot-desc">Jack-up legs penetrate 8–15 meters into clay. Lowering hull in waves > 1.50m (5ft) causes wave heave to slam leg tips, risking leg buckle or capsize.</div>
         </div>
-
-        <div class="grid-4">
-          <div class="g-card interactive selected" id="personaCard0" onclick="selectPersona(0)">
-            <span class="badge badge-blue">Persona 01</span>
-            <h3 style="font-size:16px; margin:10px 0 4px 0;">👷‍♂️ Offshore Installation Manager (OIM)</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary);">Commanding Officer onboard Jack-Up (`Sagar Samrat`) or Drillship (`Dhirubhai KG1`).</p>
-          </div>
-          <div class="g-card interactive" id="personaCard1" onclick="selectPersona(1)">
-            <span class="badge badge-green">Persona 02</span>
-            <h3 style="font-size:16px; margin:10px 0 4px 0;">⚓ Marine Warranty Surveyor (MWS)</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary);">DNV-ST-N001 Certifying Authority approving spudcan pull & wet-tow windows.</p>
-          </div>
-          <div class="g-card interactive" id="personaCard2" onclick="selectPersona(2)">
-            <span class="badge badge-yellow">Persona 03</span>
-            <h3 style="font-size:16px; margin:10px 0 4px 0;">🚁 Marine & Aviation Logistics Chief</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary);">Dispatches `3× AHTS Tugs` (Mumbai High) & `Pawan Hans Dauphin N3` helicopters (Kakinada/Paradip).</p>
-          </div>
-          <div class="g-card interactive" id="personaCard3" onclick="selectPersona(3)">
-            <span class="badge badge-red">Persona 04</span>
-            <h3 style="font-size:16px; margin:10px 0 4px 0;">📊 Asset Manager & CAG Auditor</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary);">Audits MoEFCC EC / Defence NOC readiness & tracks avoided NPT across 20 rigs.</p>
-          </div>
+        <div class="hotspot-pill" onclick="showHotspot('duration')">
+          <div class="hotspot-name">2. The 34–42 Hour Rig Move Reality</div>
+          <div class="hotspot-desc">Jetting spudcans from seabed takes 14h, towing at 4.0 kt takes 3–5h, pre-loading at target takes 12h. A cyclone builds in 12–18h — jack-downs into storms are strictly prohibited by MWS.</div>
         </div>
-
-        <div class="inspector-panel" id="personaInspector">
-          <!-- Populated dynamically by selectPersona() -->
+        <div class="hotspot-pill" onclick="showHotspot('deepwater')">
+          <div class="hotspot-name">3. Deepwater LMRP Disconnect & 🚁 Pawan Hans Evacuation</div>
+          <div class="hotspot-desc">When swells exceed 2.50m (Bay of Bengal today), deepwater drillships hang off drill pipe, disconnect LMRP in 45s, and evacuate non-essential crew via helicopter.</div>
+        </div>
+        <div class="hotspot-pill" onclick="showHotspot('completed')">
+          <div class="hotspot-name">4. When Rigs DO Move (Calm MWS Window)</div>
+          <div class="hotspot-desc">When a well is completed (or plugged dry) during calm seas (Hs ≤ 1.50m, Mumbai High today), the rig executes a planned 3× AHTS wet tow to the closest EC-cleared well.</div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ==================== SLIDE 4: INTERACTIVE ADK & VERTEX AI ARCHITECTURE ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
-        <div>
-          <span class="slide-eyebrow">04 · System Architecture & Zero-Hallucination Design</span>
-          <h1 class="slide-headline">Single-Root ADK Agent + Deterministic Python Metocean & A2UI Pipeline</h1>
-          <p class="slide-lead">
-            No trajectory math, wave physics, or UI JSON ever runs inside LLM prompt tokens. <strong>Click any of the 8 architecture components below</strong> to inspect its Python implementation and live data contract:
-          </p>
-        </div>
-
-        <div class="arch-flow">
-          <div class="arch-node active" id="archNode0" onclick="selectArchNode(0)">
-            <div class="arch-node-step">LAYER 01 · CLIENT UI</div>
-            <div class="arch-node-title">Gemini Enterprise & ADK Web</div>
-            <div class="arch-node-desc">Renders visual A2UI `VegaChart` card + outer Google-Sheets copyable tables.</div>
-          </div>
-          <div class="arch-node" id="archNode1" onclick="selectArchNode(1)">
-            <div class="arch-node-step">LAYER 02 · GUARDRAIL</div>
-            <div class="arch-node-title">`before_model_callback`</div>
-            <div class="arch-node-desc">Sanitizes prior turn A2UI/PNG payloads so context never bloats or loops.</div>
-          </div>
-          <div class="arch-node" id="archNode2" onclick="selectArchNode(2)">
-            <div class="arch-node-step">LAYER 03 · ORCHESTRATOR</div>
-            <div class="arch-node-title">Single Root Agent (`Gemini 2.5 Flash`)</div>
-            <div class="arch-node-desc">Deterministic `temp=0.0` tool caller grounded in CAG #15117 rules.</div>
-          </div>
-          <div class="arch-node" id="archNode3" onclick="selectArchNode(3)">
-            <div class="arch-node-step">LAYER 04 · LIVE TELEMETRY</div>
-            <div class="arch-node-title">Open-Meteo Marine & Wind API</div>
-            <div class="arch-node-desc">Real-time `Hs`, `Tp`, wind & gusts across 7 Indian offshore basins.</div>
-          </div>
-          <div class="arch-node" id="archNode4" onclick="selectArchNode(4)">
-            <div class="arch-node-step">LAYER 05 · AI WEATHER</div>
-            <div class="arch-node-title">GenCast & GraphCast 48h Cones</div>
-            <div class="arch-node-desc">Probabilistic 48h wave/wind envelopes & MWS `1.50m` gate evaluator.</div>
-          </div>
-          <div class="arch-node" id="archNode5" onclick="selectArchNode(5)">
-            <div class="arch-node-step">LAYER 06 · MATH ENGINE</div>
-            <div class="arch-node-title">10,000-Run Monte Carlo Simulator</div>
-            <div class="arch-node-desc">Computes P10/P50/P90 wet-tow duration, 3× AHTS tug drift & saved NPT.</div>
-          </div>
-          <div class="arch-node" id="archNode6" onclick="selectArchNode(6)">
-            <div class="arch-node-step">LAYER 07 · GOVERNANCE</div>
-            <div class="arch-node-title">120-Well EC/NOC Registry & Audit</div>
-            <div class="arch-node-desc">Filters out non-EC/NOC wells & logs CAG #15117 compliance trail.</div>
-          </div>
-          <div class="arch-node" id="archNode7" onclick="selectArchNode(7)">
-            <div class="arch-node-step">LAYER 08 · VISUAL RENDER</div>
-            <div class="arch-node-title">`after_agent_callback` Publisher</div>
-            <div class="arch-node-desc">Builds 4-Panel 1680×1080 PNG, Interactive HTML Map & A2UI v0.9 Card.</div>
-          </div>
-        </div>
-
-        <div class="inspector-panel" id="archInspector">
-          <!-- Populated dynamically by selectArchNode() -->
-        </div>
+  <!-- ==================== SLIDE 3: METOCEAN & BASIN GATES ==================== -->
+  <section class="slide" id="slide-2">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 03 · Real-Time Oceanography</div>
+        <div class="slide-heading">Live Open-Meteo Basin Telemetry & MWS Operational Gates</div>
+        <div class="slide-caption">Why Mumbai High is Green for Completed-Well Moves while the Bay of Bengal is Under Swell Lock:</div>
       </div>
-    </section>
+      <span class="pill pill-blue">Live Telemetry Today</span>
+    </div>
 
-    <!-- ==================== SLIDE 5: LIVE INDIA EEZ FLEET DIRECTIVES [1]-[6] ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+    <div class="split-even">
+      <!-- Western Offshore Card -->
+      <div class="panel-card" style="border-top:4px solid var(--g-green);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="pill pill-green">🟢 WESTERN OFFSHORE · CALM MWS WINDOW</span>
+          <strong style="font-size:12px; color:var(--g-green);">Hs ≤ 1.50m MWS Limit</strong>
+        </div>
+        <h3 style="font-size:17px; margin-top:4px;">Mumbai High, Bassein & Tapti Basins</h3>
+        <p style="font-size:12px; color:var(--g-gray);">Live Open-Meteo Marine API confirms wave height is below the 5-ft spudcan extraction limit. Rig moves permitted for completed wells.</p>
+
+        <div style="background:#f4fbf6; border:1px solid #ceead6; border-radius:8px; padding:12px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
           <div>
-            <span class="slide-eyebrow">05 · Live India EEZ Telemetry & Master Directives [1]–[6]</span>
-            <h1 class="slide-headline">Western Offshore Calm Rig Moves (`Hs=1.22m`) vs. Bay of Bengal Swell Lock (`Hs=4.98m`)</h1>
+            <div style="font-size:10.5px; color:var(--g-gray);">Mumbai High North</div>
+            <div style="font-size:16px; font-weight:700; color:var(--g-green);">1.22 m</div>
+            <div style="font-size:10px; color:var(--g-gray);">Wind: 16.6 kts</div>
           </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a class="external-link-btn" href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_latest.html" target="_blank">🌐 Open Interactive EEZ Map ↗</a>
-            <a class="external-link-btn" href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_rig_move_sop_latest.html" target="_blank">📋 Open Printable MWS SOP ↗</a>
-            <a class="external-link-btn" href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_4panel_latest.png" target="_blank">🖼️ Full-Res 4-Panel PNG ↗</a>
-          </div>
-        </div>
-
-        <table class="clean-table">
-          <thead>
-            <tr>
-              <th>Badge & Rig</th>
-              <th>Basin & Live Wave (`Hs`)</th>
-              <th>Well Status (`CAG #15117`)</th>
-              <th>MWS Operational Directive</th>
-              <th>Target Well / 🚁 Shore Base</th>
-              <th>Closer Well Rejected (Audit Reason)</th>
-              <th>Time & Saved</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>[1] Sagar Samrat</strong> (Jack-Up)</td>
-              <td>Mumbai High · <span class="badge badge-green">1.22 m (Calm)</span></td>
-              <td>Completed (`MH-N-001`)</td>
-              <td>🟢 <strong>Wet Tow (8.4 NM @ 4kt)</strong> via 3× AHTS</td>
-              <td><code>WELL-IND-004 (MH-N-B193)</code></td>
-              <td><code>MH-N-002</code> (4.1 NM — No MoEFCC EC)</td>
-              <td><strong>38.1 h · ₹11.50 Cr</strong></td>
-            </tr>
-            <tr>
-              <td><strong>[2] Sagar Ratna</strong> (Jack-Up)</td>
-              <td>Mumbai High · <span class="badge badge-green">1.21 m (Calm)</span></td>
-              <td>Dry Hole P&A (`MH-S-002`)</td>
-              <td>🟢 <strong>Wet Tow (9.6 NM @ 4kt)</strong> via 3× AHTS</td>
-              <td><code>WELL-IND-005 (MH-S-D18)</code></td>
-              <td><code>MH-S-003</code> (5.2 NM — Pipeline Buffer)</td>
-              <td><strong>38.4 h · ₹10.80 Cr</strong></td>
-            </tr>
-            <tr>
-              <td><strong>[3] Sagar Bhushan</strong> (Drillship)</td>
-              <td>Heera-Bassein · <span class="badge badge-green">1.18 m (Calm)</span></td>
-              <td>Completed (`HPB-003`)</td>
-              <td>🟢 <strong>Wet Tow (7.2 NM @ 4kt)</strong> via 3× AHTS</td>
-              <td><code>WELL-IND-006 (Neelam-14)</code></td>
-              <td><code>HPB-004</code> (3.9 NM — No 30" Conductor)</td>
-              <td><strong>21.8 h · ₹9.60 Cr</strong></td>
-            </tr>
-            <tr>
-              <td><strong>[4] Aban Ice</strong> (Jack-Up)</td>
-              <td>Tapti-Daman · <span class="badge badge-green">0.78 m (Calm)</span></td>
-              <td>Completed (`TD-C26-01`)</td>
-              <td>🟢 <strong>Wet Tow (6.8 NM @ 4kt)</strong> via 3× AHTS</td>
-              <td><code>WELL-IND-008 (Daman-04)</code></td>
-              <td><code>TD-C26-02</code> (4.4 NM — Pending Navy NOC)</td>
-              <td><strong>34.7 h · ₹8.90 Cr</strong></td>
-            </tr>
-            <tr>
-              <td><strong>[5] Dhirubhai KG1</strong> (DP3)</td>
-              <td>KG-DWN (BoB) · <span class="badge badge-red">2.80 m (Storm)</span></td>
-              <td>Active Drilling (`KG-U1`)</td>
-              <td>🔴 <strong>NO RIG MOVE</strong> · BOP Hang-Off + 🚁 Evac</td>
-              <td><code>🚁 ONGC Rajahmundry Base</code></td>
-              <td>Rig Move Prohibited (`Hs = 2.80m > 1.5m`)</td>
-              <td><strong>14.5 h · ₹14.20 Cr</strong></td>
-            </tr>
-            <tr>
-              <td><strong>[6] Platinum Explorer</strong> (DP3)</td>
-              <td>Mahanadi (BoB) · <span class="badge badge-red">4.98 m (Storm)</span></td>
-              <td>Active Drilling (`MND-01`)</td>
-              <td>🔴 <strong>NO RIG MOVE</strong> · LMRP Unlatch + 🚁 Evac</td>
-              <td><code>🚁 ONGC Paradip Shore Base</code></td>
-              <td>Rig Move Prohibited (`Hs = 4.98m > 1.5m`)</td>
-              <td><strong>12.5 h · ₹16.50 Cr</strong></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="g-card" style="padding:14px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
           <div>
-            <span class="badge badge-blue">Embedded Visual Artifact</span>
-            <strong style="margin-left:8px; font-size:14px;">High-Resolution 1680×1080 4-Panel Command Infographic Preview</strong>
-            <span style="font-size:12.5px; color:var(--text-secondary); margin-left:8px;">(Rendered automatically inside Gemini Enterprise & saved to Cloud Storage)</span>
+            <div style="font-size:10.5px; color:var(--g-gray);">Heera-Bassein</div>
+            <div style="font-size:16px; font-weight:700; color:var(--g-green);">1.18 m</div>
+            <div style="font-size:10px; color:var(--g-gray);">Wind: 17.0 kts</div>
           </div>
-          <a href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_4panel_latest.png" target="_blank" class="external-link-btn">🔍 View Full 1680×1080 PNG in New Tab ↗</a>
+          <div>
+            <div style="font-size:10.5px; color:var(--g-gray);">Tapti-Daman</div>
+            <div style="font-size:16px; font-weight:700; color:var(--g-green);">0.78 m</div>
+            <div style="font-size:10px; color:var(--g-gray);">Wind: 11.3 kts</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; line-height:1.5; color:var(--g-dark);">
+          <strong>Directives [1]–[4] Authorized:</strong> Completed/dry rigs (<em>Sagar Samrat, Sagar Ratna, Sagar Bhushan, Aban Ice</em>) execute 3× AHTS wet tows (6.8–9.6 NM) to closest EC-cleared candidate wells.
         </div>
       </div>
-    </section>
 
-    <!-- ==================== SLIDE 6: BUSINESS IMPACT & COPYABLE GE PROMPTS ==================== -->
-    <section class="slide">
-      <div class="slide-inner">
-        <div>
-          <span class="slide-eyebrow">06 · Deployment Summary & Interactive Gemini Enterprise Test Suite</span>
-          <h1 class="slide-headline">Ready in Production on Vertex AI Agent Engine & Gemini Enterprise</h1>
-          <p class="slide-lead">
-            Deployed on Google Cloud (`projects/632239123109/locations/us-central1/reasoningEngines/4687908012755517440`).
-            Click any button below to copy a ready-to-run prompt into your clipboard and paste it into <strong>Gemini Enterprise</strong>:
-          </p>
+      <!-- Eastern Offshore Card -->
+      <div class="panel-card" style="border-top:4px solid var(--g-red);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="pill pill-red">🔴 EASTERN OFFSHORE · CYCLONIC SWELL LOCK</span>
+          <strong style="font-size:12px; color:var(--g-red);">Hs &gt; 2.50m Limit</strong>
         </div>
+        <h3 style="font-size:17px; margin-top:4px;">KG-DWN-98/2 & Mahanadi Basins (Bay of Bengal)</h3>
+        <p style="font-size:12px; color:var(--g-gray);">Severe monsoon swell and gusts above 40 kts. Rig moves prohibited by Marine Warranty Surveyors (MWS). Emergency storm protocols active.</p>
 
-        <div class="grid-3">
-          <div class="g-card">
-            <span class="badge badge-blue">Prompt 01 · Full EEZ Command Sweep</span>
-            <h3 style="font-size:15px; margin:10px 0 6px 0;">Live Metocean + CAG #15117 Fleet Sweep</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;" id="promptText0">Run a live metocean and CAG Audit #15117 fleet assessment across all 20 offshore rigs in India's EEZ. Compare today's real-time wave and wind conditions in Mumbai High versus the Bay of Bengal (KG-DWN and Mahanadi), and show the exact operational directive, well-to-well move or in-place storm protocol, and avoided NPT for rigs [1] through [6].</p>
-            <button class="nav-btn" onclick="copyPrompt(0, this)" style="width:100%; justify-content:center;">📋 Copy Prompt 01</button>
+        <div style="background:#fce8e6; border:1px solid #fad2cf; border-radius:8px; padding:12px; display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+          <div>
+            <div style="font-size:10.5px; color:var(--g-gray);">KG-DWN-98/2</div>
+            <div style="font-size:16px; font-weight:700; color:var(--g-red);">2.80 m</div>
+            <div style="font-size:10px; color:var(--g-gray);">Wind: 26.4 kt · Gust: 36.5 kt</div>
           </div>
-
-          <div class="g-card">
-            <span class="badge badge-green">Prompt 02 · Calm MWS Rig Move</span>
-            <h3 style="font-size:15px; margin:10px 0 6px 0;">Mumbai High Completed-Well Wet Tow (`[1]–[4]`)</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;" id="promptText1">Sagar Samrat [1] and Sagar Ratna [2] have completed their current wells in Mumbai High. Check live Open-Meteo wave height against the 1.50m MWS spudcan extraction limit, explain why closer non-EC wells were rejected per CAG Report #15117, and provide the hour-by-hour 3x AHTS tug wet-tow plan.</p>
-            <button class="nav-btn" onclick="copyPrompt(1, this)" style="width:100%; justify-content:center; background:var(--g-green);">📋 Copy Prompt 02</button>
-          </div>
-
-          <div class="g-card">
-            <span class="badge badge-red">Prompt 03 · Bay of Bengal Swell Lock</span>
-            <h3 style="font-size:15px; margin:10px 0 6px 0;">Deepwater BOP Hang-Off & 🚁 Crew Evac (`[5]–[6]`)</h3>
-            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;" id="promptText2">Why can't Dhirubhai Deepwater KG1 [5] and Platinum Explorer [6] move to a new well during today's high swells in the Bay of Bengal? Provide the DNV-ST-N001 MWS limits, the in-place BOP Hang-Off and LMRP Disconnect timeline, and the Pawan Hans helicopter evacuation plan.</p>
-            <button class="nav-btn" onclick="copyPrompt(2, this)" style="width:100%; justify-content:center; background:var(--g-red);">📋 Copy Prompt 03</button>
+          <div>
+            <div style="font-size:10.5px; color:var(--g-gray);">Mahanadi Basin</div>
+            <div style="font-size:16px; font-weight:700; color:var(--g-red);">4.98 m</div>
+            <div style="font-size:10px; color:var(--g-gray);">Wind: 29.6 kt · Gust: 41.2 kt</div>
           </div>
         </div>
 
-        <div class="inspector-panel" style="border-left-color:var(--g-green);">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div>
-              <h3 style="font-size:16px; margin-bottom:4px;">🔗 Direct Cloud Artifacts & Source Repository</h3>
-              <p style="font-size:13px; color:var(--text-secondary);">
-                All visual surfaces render ONLY the graphic inside the A2UI Card while keeping tables & links outside in the main response for 1-click copying to Google Sheets.
-              </p>
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <a class="external-link-btn" href="https://cag.gov.in/en/audit-report/details/15117" target="_blank">🏛️ CAG Report #15117 Source ↗</a>
-              <a class="external-link-btn" href="https://github.com/zuhaibp656/oil-and-gas-rig-navigator-agent" target="_blank">💻 GitHub Repository ↗</a>
-            </div>
-          </div>
+        <div style="font-size:12px; line-height:1.5; color:var(--g-dark);">
+          <strong>Directives [5]–[6] Active:</strong> Deepwater drillships (<em>Dhirubhai KG1, Platinum Explorer</em>) execute BOP Hang-Off, 45s LMRP Unlatch into 3 NM DP3 Storm Box, and 🚁 Pawan Hans crew evacuation to Rajahmundry & Paradip.
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-  </div>
+  <!-- ==================== SLIDE 4: MASTER FLEET DIRECTIVES [1]–[6] ==================== -->
+  <section class="slide" id="slide-3">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 04 · Operational Directives</div>
+        <div class="slide-heading">Fleet Relocation & Storm Evacuation Directives [1] through [6]</div>
+        <div class="slide-caption">Copy-ready format for Google Sheets / Excel, fully compliant with CAG Report #15117 statutory clearances:</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <a href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_latest.html" target="_blank" class="quick-link-btn">🌐 Open Interactive Map ↗</a>
+        <a href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_rig_move_sop_latest.html" target="_blank" class="quick-link-btn">📋 Open Printable SOP ↗</a>
+      </div>
+    </div>
+
+    <table class="compact-table">
+      <thead>
+        <tr>
+          <th>Badge & Rig</th>
+          <th>Basin & Live Sea State</th>
+          <th>Well Status (`CAG #15117`)</th>
+          <th>Operational Directive</th>
+          <th>Target Location</th>
+          <th>Rejected Closer Well (Audit Reason)</th>
+          <th>Saved NPT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>[1] Sagar Samrat</strong> (Jack-Up)</td>
+          <td>Mumbai High · <span class="pill pill-green">Hs = 1.22m</span></td>
+          <td>Completed (`MH-N-001`)</td>
+          <td>🟢 <strong>Wet Tow (8.4 NM @ 4kt)</strong> via 3× AHTS</td>
+          <td><code>WELL-IND-004 (MH-N-B193)</code></td>
+          <td><code>MH-N-002</code> (4.1 NM — No MoEFCC EC)</td>
+          <td><strong>38.1h · ₹11.50 Cr</strong></td>
+        </tr>
+        <tr>
+          <td><strong>[2] Sagar Ratna</strong> (Jack-Up)</td>
+          <td>Mumbai High · <span class="pill pill-green">Hs = 1.21m</span></td>
+          <td>Dry Hole P&A (`MH-S-002`)</td>
+          <td>🟢 <strong>Wet Tow (9.6 NM @ 4kt)</strong> via 3× AHTS</td>
+          <td><code>WELL-IND-005 (MH-S-D18)</code></td>
+          <td><code>MH-S-003</code> (5.2 NM — Subsea Pipeline Buffer)</td>
+          <td><strong>38.4h · ₹10.80 Cr</strong></td>
+        </tr>
+        <tr>
+          <td><strong>[3] Sagar Bhushan</strong> (Drillship)</td>
+          <td>Heera-Bassein · <span class="pill pill-green">Hs = 1.18m</span></td>
+          <td>Completed (`HPB-003`)</td>
+          <td>🟢 <strong>Wet Tow (7.2 NM @ 4kt)</strong> via 3× AHTS</td>
+          <td><code>WELL-IND-006 (Neelam-14)</code></td>
+          <td><code>HPB-004</code> (3.9 NM — Conductor Not Pre-Jetted)</td>
+          <td><strong>21.8h · ₹9.60 Cr</strong></td>
+        </tr>
+        <tr>
+          <td><strong>[4] Aban Ice</strong> (Jack-Up)</td>
+          <td>Tapti-Daman · <span class="pill pill-green">Hs = 0.78m</span></td>
+          <td>Completed (`TD-C26-01`)</td>
+          <td>🟢 <strong>Wet Tow (6.8 NM @ 4kt)</strong> via 3× AHTS</td>
+          <td><code>WELL-IND-008 (Daman-04)</code></td>
+          <td><code>TD-C26-02</code> (4.4 NM — Pending Navy Defence NOC)</td>
+          <td><strong>34.7h · ₹8.90 Cr</strong></td>
+        </tr>
+        <tr>
+          <td><strong>[5] Dhirubhai KG1</strong> (DP3)</td>
+          <td>KG-DWN (BoB) · <span class="pill pill-red">Hs = 2.80m</span></td>
+          <td>Active Drilling (`KG-U1`)</td>
+          <td>🔴 <strong>NO RIG MOVE</strong> · BOP Hang-Off + 🚁 Evac</td>
+          <td><code>🚁 Rajahmundry Base (54 POB)</code></td>
+          <td>Rig Move Prohibited (`Hs = 2.80m > 1.50m`)</td>
+          <td><strong>14.5h · ₹14.20 Cr</strong></td>
+        </tr>
+        <tr>
+          <td><strong>[6] Platinum Explorer</strong> (DP3)</td>
+          <td>Mahanadi (BoB) · <span class="pill pill-red">Hs = 4.98m</span></td>
+          <td>Active Drilling (`MND-01`)</td>
+          <td>🔴 <strong>NO RIG MOVE</strong> · LMRP Unlatch + 🚁 Evac</td>
+          <td><code>🚁 Paradip Base (60 POB)</code></td>
+          <td>Rig Move Prohibited (`Hs = 4.98m > 1.50m`)</td>
+          <td><strong>12.5h · ₹16.50 Cr</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:#f1f3f4; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12px; color:var(--g-dark);"><strong>Notice:</strong> This table is formatted with atomic columns so users can highlight and paste directly into Google Sheets / Excel without broken line-wraps.</span>
+      <span style="font-size:12px; font-weight:700; color:var(--g-green);">Total Fleet Protection: ₹71.50 Crore</span>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5: SYSTEM ARCHITECTURE ==================== -->
+  <section class="slide" id="slide-4">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 05 · Software Architecture</div>
+        <div class="slide-heading">High-Code ADK Agent on Vertex AI Agent Engine</div>
+        <div class="slide-caption">Click any component block to inspect the production Python code and guardrails:</div>
+      </div>
+      <span class="pill pill-blue">Single-Root Agent</span>
+    </div>
+
+    <div class="split-2">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div class="panel-card interactive active" onclick="showArch('ui')">
+          <div style="display:flex; justify-content:space-between;">
+            <strong style="font-size:13px; color:var(--g-blue);">1. Gemini Enterprise & A2UI v0.9</strong>
+            <span class="pill pill-blue">Client Surface</span>
+          </div>
+          <p style="font-size:11.5px; color:var(--g-gray);">Renders visual VegaChart infographic inside card; all copyable tables & links live outside in main chat stream.</p>
+        </div>
+        <div class="panel-card interactive" onclick="showArch('guard')">
+          <div style="display:flex; justify-content:space-between;">
+            <strong style="font-size:13px; color:var(--g-yellow);">2. History Sanitizer Guardrail</strong>
+            <span class="pill pill-yellow">Token Guard</span>
+          </div>
+          <p style="font-size:11.5px; color:var(--g-gray);">Strips prior-turn A2UI envelopes and PNG bytes before invoking Gemini to prevent token runaway loops.</p>
+        </div>
+        <div class="panel-card interactive" onclick="showArch('tools')">
+          <div style="display:flex; justify-content:space-between;">
+            <strong style="font-size:13px; color:var(--g-green);">3. Open-Meteo & Monte Carlo Tools</strong>
+            <span class="pill pill-green">Discrete Math</span>
+          </div>
+          <p style="font-size:11.5px; color:var(--g-gray);">Queries live ECMWF marine telemetry, 10,000-run wet-tow transit simulations, and 120-well clearance registry.</p>
+        </div>
+      </div>
+
+      <div class="panel-card" style="background:#1e1e1e; border-color:#333;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:#4da3ff; font-family:'JetBrains Mono';" id="archCodeTitle">A2UI v0.9 CARD RENDERER (app/render/rig_fleet_card.py)</span>
+          <span class="pill pill-blue" style="background:#333; color:#fff;">Python 3.13</span>
+        </div>
+        <pre class="compact-code" id="archCodeBody">def build_rig_fleet_components(summary: FleetSummary):
+    # Pure visual interactive infographic inside the card
+    chart_comp = {
+        "id": "rfc-chart-vega",
+        "component": "VegaChart",
+        "spec": vega_spec,
+        "height": 860
+    }
+    # Text tables & headed links emitted OUTSIDE in main Markdown
+    return [root_card, column, chart_comp]</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6: TEST PROMPTS & IMPACT ==================== -->
+  <section class="slide" id="slide-5">
+    <div class="slide-title-bar">
+      <div>
+        <div class="slide-eyebrow">Slide 06 · Production Demo Suite</div>
+        <div class="slide-heading">Try ORMWO in Gemini Enterprise / Vertex AI Agent Engine</div>
+        <div class="slide-caption">Click any prompt card to copy it directly into your clipboard for live meeting demos:</div>
+      </div>
+      <span class="pill pill-green">Live on Vertex AI</span>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel-card interactive" onclick="copyPrompt('p1', this)">
+        <span class="pill pill-blue">Prompt 01 · Full Fleet Sweep</span>
+        <h4 style="font-size:14px; margin-top:4px;">Live Metocean + CAG #15117 Sweep</h4>
+        <p style="font-size:11.5px; color:var(--g-gray); line-height:1.45;" id="p1">Run a live metocean and CAG Audit #15117 fleet assessment across all 20 offshore rigs in India's EEZ. Compare today's real-time wave and wind conditions in Mumbai High versus the Bay of Bengal (KG-DWN and Mahanadi), and show the exact operational directive, well-to-well move or in-place storm protocol, and avoided NPT for rigs [1] through [6].</p>
+        <div style="font-size:11px; font-weight:700; color:var(--g-blue); margin-top:auto;">📋 Click to Copy Prompt</div>
+      </div>
+
+      <div class="panel-card interactive" onclick="copyPrompt('p2', this)">
+        <span class="pill pill-green">Prompt 02 · Calm MWS Rig Move</span>
+        <h4 style="font-size:14px; margin-top:4px;">Mumbai High Wet Tow ([1]–[4])</h4>
+        <p style="font-size:11.5px; color:var(--g-gray); line-height:1.45;" id="p2">Sagar Samrat [1] and Sagar Ratna [2] have completed their current wells in Mumbai High. Check live Open-Meteo wave height against the 1.50m MWS spudcan extraction limit, explain why closer non-EC wells were rejected per CAG Report #15117, and provide the hour-by-hour 3x AHTS tug wet-tow plan.</p>
+        <div style="font-size:11px; font-weight:700; color:var(--g-green); margin-top:auto;">📋 Click to Copy Prompt</div>
+      </div>
+
+      <div class="panel-card interactive" onclick="copyPrompt('p3', this)">
+        <span class="pill pill-red">Prompt 03 · Cyclone Swell Lock</span>
+        <h4 style="font-size:14px; margin-top:4px;">Bay of Bengal Crew Evacuation ([5]–[6])</h4>
+        <p style="font-size:11.5px; color:var(--g-gray); line-height:1.45;" id="p3">Why can't Dhirubhai Deepwater KG1 [5] and Platinum Explorer [6] move to a new well during today's high swells in the Bay of Bengal? Provide the DNV-ST-N001 MWS limits, the in-place BOP Hang-Off and LMRP Disconnect timeline, and the Pawan Hans helicopter evacuation plan.</p>
+        <div style="font-size:11px; font-weight:700; color:var(--g-red); margin-top:auto;">📋 Click to Copy Prompt</div>
+      </div>
+    </div>
+
+    <div class="panel-card" style="background:#f4fbf6; border-color:#ceead6; display:flex; flex-direction:row; align-items:center; justify-content:space-between;">
+      <div>
+        <strong style="font-size:13px; color:var(--g-dark);">Live Production Reasoning Engine Resource:</strong>
+        <div style="font-size:11.5px; font-family:'JetBrains Mono'; color:var(--g-gray); margin-top:2px;">projects/632239123109/locations/us-central1/reasoningEngines/4687908012755517440</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <a href="https://github.com/zuhaibp656/oil-and-gas-rig-navigator-agent" target="_blank" class="quick-link-btn">💻 GitHub Repository ↗</a>
+        <a href="https://storage.mtls.cloud.google.com/zuhaibp-ai-agent-staging/interactive_maps/india_eez_latest.html" target="_blank" class="quick-link-btn">🗺️ Live Command Map ↗</a>
+      </div>
+    </div>
+  </section>
+
 </main>
 
-<footer class="deck-footer">
-  <button class="nav-btn secondary" id="prevBtn" onclick="changeSlide(-1)" disabled>← Previous Slide</button>
-  <div style="font-size:13px; font-weight:600; color:var(--text-secondary);" id="slideIndicator">
-    Slide 1 of 6 · Use <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">←</kbd> <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">→</kbd> keys or click Next
+<footer class="controls-footer">
+  <button class="btn-nav ghost" id="btnPrev" onclick="navigate(-1)" disabled>← Previous</button>
+  <div style="font-size:12.5px; font-weight:600; color:var(--g-gray);" id="slideCounter">
+    Slide 1 of 6 · Use <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">←</kbd> <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">→</kbd> Arrow Keys
   </div>
-  <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next Slide →</button>
+  <button class="btn-nav" id="btnNext" onclick="navigate(1)">Next Slide →</button>
 </footer>
 
 <script>
-  let currentSlide = 0;
-  const totalSlides = 6;
+  let activeSlide = 0;
+  const slideCount = 6;
 
-  function goToSlide(idx) {
-    currentSlide = Math.max(0, Math.min(totalSlides - 1, idx));
-    const track = document.getElementById('slidesTrack');
-    track.style.transform = `translateX(-${currentSlide * (100 / totalSlides)}%)`;
+  function jumpTo(index) {
+    activeSlide = Math.max(0, Math.min(slideCount - 1, index));
 
-    const pills = document.querySelectorAll('.step-pill');
-    pills.forEach((p, i) => p.classList.toggle('active', i === currentSlide));
+    // Bulletproof direct DOM class toggling
+    for (let i = 0; i < slideCount; i++) {
+      const el = document.getElementById(`slide-${i}`);
+      if (el) el.classList.toggle('active', i === activeSlide);
+    }
 
-    document.getElementById('prevBtn').disabled = (currentSlide === 0);
-    const nextBtn = document.getElementById('nextBtn');
-    if (currentSlide === totalSlides - 1) {
-      nextBtn.innerText = '↺ Restart Presentation';
-      nextBtn.onclick = () => goToSlide(0);
+    // Update Top Tabs
+    const tabs = document.querySelectorAll('.slide-tab');
+    tabs.forEach((t, i) => t.classList.toggle('active', i === activeSlide));
+
+    // Update Bottom Footer Controls
+    document.getElementById('btnPrev').disabled = (activeSlide === 0);
+    const nextBtn = document.getElementById('btnNext');
+    if (activeSlide === slideCount - 1) {
+      nextBtn.innerText = '↺ First Slide';
+      nextBtn.onclick = () => jumpTo(0);
     } else {
       nextBtn.innerText = 'Next Slide →';
-      nextBtn.onclick = () => changeSlide(1);
+      nextBtn.onclick = () => navigate(1);
     }
-    document.getElementById('slideIndicator').innerHTML =
-      `Slide ${currentSlide + 1} of ${totalSlides} · Use <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">←</kbd> <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">→</kbd> keys or click Next`;
+
+    document.getElementById('slideCounter').innerHTML =
+      `Slide ${activeSlide + 1} of ${slideCount} · Use <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">←</kbd> <kbd style="background:#f1f3f4;padding:2px 6px;border-radius:4px;border:1px solid #dadce0;">→</kbd> Arrow Keys`;
   }
 
-  function changeSlide(delta) {
-    goToSlide(currentSlide + delta);
+  function navigate(delta) {
+    jumpTo(activeSlide + delta);
   }
 
+  // Keyboard navigation
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') changeSlide(1);
-    if (e.key === 'ArrowLeft') changeSlide(-1);
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      navigate(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      navigate(-1);
+    }
   });
 
-  // Slide 1 Interactive CAG Findings Data
-  const cagFindings = [
-    {
-      badge: 'CAG Audit Finding 01 · MoEFCC EC & Defence NOC Verification',
-      title: 'Why Geographic Proximity Alone Caused ₹218 Cr in Idle Waiting',
-      quote: '"Rigs were mobilized to drilling locations where statutory clearances (MoEFCC Environmental Clearance, Naval/DRDO Defence NOC) or pre-jetted 30-inch conductors were not yet ready, resulting in prolonged idling at full charter hire." — CAG Report #15117',
-      solutionTitle: 'How ORMWO Solves This Deterministically:',
-      bullets: [
-        'Every candidate well in the 120-well registry carries explicit boolean gates: `moefcc_ec_cleared`, `defence_noc_cleared`, `pipeline_buffer_500m_ok`, and `conductor_pre_jetted`.',
-        'Example on Rig [1] (Sagar Samrat): The agent automatically REJECTS `MH-N-002` at 4.1 NM (missing MoEFCC EC) and routes the wet tow to `WELL-IND-004 (MH-N-B193)` at 8.4 NM (100% EC & NOC verified).',
-        'Prevents ₹11.50 Cr in waiting-on-clearance NPT on a single move.'
-      ]
-    },
-    {
-      badge: 'CAG Audit Finding 02 · Marine Warranty Surveyor (MWS) Weather Windows',
-      title: 'The 1.50m (5 ft) Jack-Up Spudcan Limit & Monsoon Swell Lock',
-      quote: '"Failure to synchronize well completion schedules with calm sea windows (Hs <= 1.50m) forced jack-up rigs to wait on location throughout monsoon swell periods at ₹1.0–1.2 Cr/day." — CAG Report #15117',
-      solutionTitle: 'How ORMWO Solves This Deterministically:',
-      bullets: [
-        'Queries live Open-Meteo Marine API (`marine-api.open-meteo.com`) + 48h Google DeepMind GenCast/GraphCast wave envelopes.',
-        'When `Live Hs <= 1.50m` (as in Mumbai High today: `1.22m`), immediately authorizes the 38.1-hour spudcan extraction & `3× AHTS` wet tow for completed-well rigs `[1]–[4]`.',
-        'When `Live Hs > 2.50m` (as in Bay of Bengal today: `2.80m–4.98m`), blocks any rig move and triggers In-Place BOP Hang-Off + 🚁 Helicopter Evacuation (`[5]–[6]`).'
-      ]
-    },
-    {
-      badge: 'CAG Audit Finding 03 · Integrated Tug & Helicopter Dispatch',
-      title: 'Synchronizing 3× AHTS Tugs (150T BP) & Pawan Hans Dauphin N3 Sorties',
-      quote: '"Lack of synchronized marine vessel (AHTS) and aviation logistics across Western and Eastern Offshore assets compounded non-productive rig hours during rig-move and cyclone demobilization phases." — CAG Report #15117',
-      solutionTitle: 'How ORMWO Solves This Deterministically:',
-      bullets: [
-        'Runs a 10,000-iteration Monte Carlo wet-tow simulation accounting for `3× ONGC/SCI AHTS Tugs` (4.0 kt tow speed against current drift).',
-        'Outputs a complete phase-by-phase engineering breakdown (`10h BOP/Plug + 14h Spudcan Pull + 2.1h Tow + 12h Pre-Load Jacking = 38.1h`).',
-        'Generates a printable HTML Engineering SOP & Logistics Checklist for the OIM and Shore Base.'
-      ]
-    }
-  ];
-
-  function selectCagFinding(idx) {
-    [0,1,2].forEach(i => document.getElementById(`cagCard${i}`).classList.toggle('selected', i === idx));
-    const f = cagFindings[idx];
-    document.getElementById('cagInspector').innerHTML = `
-      <span class="badge badge-blue">${f.badge}</span>
-      <h3 style="font-size:19px; margin:10px 0 8px 0;">${f.title}</h3>
-      <div style="background:#fef7e0; border-left:3px solid #f9ab00; padding:12px 14px; border-radius:6px; font-size:13px; color:#3c4043; font-style:italic; margin-bottom:16px;">
-        ${f.quote}
-      </div>
-      <div style="font-size:14px; font-weight:600; color:var(--g-green); margin-bottom:8px;">✅ ${f.solutionTitle}</div>
-      <ul style="padding-left:20px; display:flex; flex-direction:column; gap:8px; font-size:13.5px; color:var(--text-primary); line-height:1.5;">
-        ${f.bullets.map(b => `<li>${b}</li>`).join('')}
-      </ul>
-      <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:12px; color:var(--text-secondary);">Primary Audit Reference: Government of India CAG Report #15117</span>
-        <a href="https://cag.gov.in/en/audit-report/details/15117" target="_blank" style="font-size:12.5px; font-weight:600; color:var(--g-blue); text-decoration:none;">Read Official CAG Report #15117 ↗</a>
-      </div>
-    `;
-  }
-
-  // Slide 2 Engineering Mode Switcher
-  function setEngineeringMode(mode) {
-    const btnA = document.getElementById('modeBtnA');
-    const btnB = document.getElementById('modeBtnB');
-    const box = document.getElementById('engineeringComparisonBox');
-
-    if (mode === 'A') {
-      btnA.className = 'nav-btn';
-      btnA.style.background = 'var(--g-red)';
-      btnB.className = 'nav-btn secondary';
-      btnB.style.background = '#ffffff';
-      box.innerHTML = `
-        <div class="g-card" style="border-top:4px solid var(--g-red);">
-          <span class="badge badge-red">ACTIVE STORM REGIME · Hs = 2.80m – 4.98m (Bay of Bengal Today)</span>
-          <h3 style="font-size:19px; margin:10px 0 8px 0;">Why Moving a Rig in a 48h Storm is Physically Impossible</h3>
-          <ul style="padding-left:20px; display:flex; flex-direction:column; gap:10px; font-size:13.5px; color:var(--text-primary); line-height:1.55;">
-            <li><strong>1.50m (5 ft) Leg Punch-Through Ceiling:</strong> Lowering a 12,000-ton jack-up hull to the sea surface when waves exceed <code>1.50m</code> causes wave heave to slam the 300-ft leg spudcans into the seabed, bending legs or capsizing the rig.</li>
-            <li><strong>34–42 Hour Move Duration:</strong> Extracting spudcans from 12m of seabed clay takes <code>14 hours</code> of jetting, plus <code>4.5h</code> AHTS bridle hookup and <code>12h</code> pre-load jacking at the destination. A cyclone wave field arrives in <code>12–18h</code>—long before a rig could ever jack down.</li>
-            <li><strong>Mandatory Action for Rigs [5] & [6] (KG-DWN & Mahanadi):</strong>
-              <br/>1) <code>10.0h</code> Hang off drill string on Subsea BOP & lock Blind-Shear Rams
-              <br/>2) <code>2.0h</code> Unlatch Lower Marine Riser Package (<code>LMRP Disconnect</code>)
-              <br/>3) <code>2.0h</code> Move <code>3.0 NM</code> to DP3 Storm Holding Box (weather-vaning into swell)
-              <br/>4) <code>0.5h</code> <strong>🚁 Evacuate 114 Non-Essential Crew via Pawan Hans Dauphin N3 Helicopters</strong> to Rajahmundry & Paradip Shore Bases.
-            </li>
-          </ul>
-        </div>
-        <div class="g-card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff8f7;">
-          <svg viewBox="0 0 520 290" width="100%" height="270">
-            <rect width="520" height="290" rx="10" fill="#fce8e6"/>
-            <text x="20" y="30" fill="#d93025" font-size="13" font-weight="700">BAY OF BENGAL LIVE TELEMETRY: Hs = 2.80m–4.98m (RIG MOVE PROHIBITED)</text>
-            <!-- Storm Sea Waves -->
-            <path d="M0 155 Q 45 125, 90 155 T 180 155 T 270 155 T 360 155 T 450 155 T 520 155 L 520 290 L 0 290 Z" fill="#1a73e8" opacity="0.25"/>
-            <!-- Drillship [5]/[6] -->
-            <rect x="110" y="130" width="120" height="24" rx="4" fill="#202124"/>
-            <polygon points="155,130 185,130 170,75" fill="#d93025"/>
-            <text x="115" y="65" fill="#202124" font-size="11.5" font-weight="700">[5] Dhirubhai KG1 / [6] Platinum</text>
-            <!-- Disconnected LMRP & Subsea BOP -->
-            <line x1="170" y1="154" x2="170" y2="205" stroke="#d93025" stroke-width="4" stroke-dasharray="6,4"/>
-            <text x="182" y="190" fill="#d93025" font-size="11" font-weight="700">⚡ LMRP UNLATCHED (3 NM DP3 Box)</text>
-            <rect x="152" y="235" width="36" height="32" rx="3" fill="#5f6368"/>
-            <text x="115" y="280" fill="#202124" font-size="11" font-weight="600">Subsea Wellhead Sealed (BOP Shear Rams Locked)</text>
-            <!-- Helicopter Evacuation Arrow to Shore Base -->
-            <path d="M 215 95 Q 315 50, 410 95" fill="none" stroke="#1e8e3e" stroke-width="3" stroke-dasharray="5,3"/>
-            <rect x="385" y="95" width="115" height="55" rx="6" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="2"/>
-            <text x="395" y="118" fill="#1e8e3e" font-size="11.5" font-weight="700">🚁 ONGC Shore Base</text>
-            <text x="395" y="136" fill="#202124" font-size="10.5">Rajahmundry / Paradip</text>
-            <text x="245" y="68" fill="#1e8e3e" font-size="11.5" font-weight="700">🚁 114 Crew Evacuated (25 min)</text>
-          </svg>
-        </div>
-      `;
+  // Slide 2: Switch Vector Blueprints
+  function switchBlueprint(type) {
+    const j = document.getElementById('svgJackup');
+    const d = document.getElementById('svgDrillship');
+    const tag = document.getElementById('bpTag');
+    if (type === 'jackup') {
+      j.style.display = 'block';
+      d.style.display = 'none';
+      tag.innerText = 'JACK-UP DRILLING UNIT · 300 FT LATTICE LEGS · 1.50m PUNCH-THROUGH LIMIT';
     } else {
-      btnB.className = 'nav-btn';
-      btnB.style.background = 'var(--g-green)';
-      btnA.className = 'nav-btn secondary';
-      btnA.style.background = '#ffffff';
-      box.innerHTML = `
-        <div class="g-card" style="border-top:4px solid var(--g-green);">
-          <span class="badge badge-green">CALM MWS WINDOW · Live Hs = 0.78m – 1.22m ≤ 1.50m (Mumbai High Today)</span>
-          <h3 style="font-size:19px; margin:10px 0 8px 0;">When Rigs DO Move: Completed-Well / Dry-Hole Redeployment</h3>
-          <ul style="padding-left:20px; display:flex; flex-direction:column; gap:10px; font-size:13.5px; color:var(--text-primary); line-height:1.55;">
-            <li><strong>Live Open-Meteo Verification:</strong> Today in Western Offshore (`Mumbai High Hs = 1.22m`, `Bassein Hs = 1.18m`, `Tapti Hs = 0.78m`), waves are well below the <code>1.50m (5 ft)</code> MWS spudcan extraction ceiling.</li>
-            <li><strong>Completed-Well Trigger (CAG #15117):</strong> Rigs <code>[1] Sagar Samrat</code>, <code>[2] Sagar Ratna</code>, <code>[3] Sagar Bhushan</code>, and <code>[4] Aban Ice</code> have finished their current wells (or plugged a dry hole). Sitting idle costs <code>₹1.0–1.2 Cr/day</code>.</li>
-            <li><strong>Step-by-Step 38.1-Hour MWS Wet-Tow Execution:</strong>
-              <br/>1) <code>10.0h</code> Wellhead Cap / Cement Plug & BOP Disconnect
-              <br/>2) <code>14.0h</code> High-Pressure Water Jetting to Extract Spudcans from 12m Clay
-              <br/>3) <code>2.1h</code> <strong>Wet Tow (8.4 NM @ 4.0 kt via 3× ONGC 150T AHTS Tugs)</strong>
-              <br/>4) <code>12.0h</code> Pinning & 100% Pre-Load Jacking at <code>WELL-IND-004</code> (EC & Defence NOC Verified).
-            </li>
-          </ul>
-        </div>
-        <div class="g-card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:#f4fbf6;">
-          <svg viewBox="0 0 520 290" width="100%" height="270">
-            <rect width="520" height="290" rx="10" fill="#e6f4ea"/>
-            <text x="20" y="30" fill="#1e8e3e" font-size="13" font-weight="700">MUMBAI HIGH LIVE TELEMETRY: Hs = 1.22m ≤ 1.50m (MWS GREEN WINDOW)</text>
-            <!-- Calm Sea Line -->
-            <line x1="0" y1="170" x2="520" y2="170" stroke="#1a73e8" stroke-width="3"/>
-            <!-- Origin Completed Well -->
-            <circle cx="85" cy="210" r="14" fill="#5f6368"/>
-            <text x="30" y="245" fill="#202124" font-size="11" font-weight="700">Origin: MH-N-001 (Completed)</text>
-            <!-- Rejected Closer Well (No EC) -->
-            <circle cx="235" cy="120" r="12" fill="#d93025"/>
-            <text x="175" y="98" fill="#d93025" font-size="11" font-weight="700">❌ MH-N-002 (4.1 NM — No MoEFCC EC)</text>
-            <!-- 3x AHTS Wet Tow Route -->
-            <path d="M 100 210 Q 250 220, 410 195" fill="none" stroke="#1e8e3e" stroke-width="4"/>
-            <text x="175" y="195" fill="#1e8e3e" font-size="12" font-weight="700">🚢 3× AHTS Wet Tow (8.4 NM · 38.1h Total)</text>
-            <!-- Target EC-Cleared Well -->
-            <rect x="410" y="175" width="90" height="45" rx="6" fill="#1e8e3e"/>
-            <text x="418" y="196" fill="#ffffff" font-size="11" font-weight="700">WELL-IND-004</text>
-            <text x="418" y="211" fill="#e6f4ea" font-size="10">EC + NOC Ready</text>
-          </svg>
-        </div>
-      `;
+      j.style.display = 'none';
+      d.style.display = 'block';
+      tag.innerText = 'DP3 ULTRA-DEEPWATER DRILLSHIP · 1,500m RISER · 45s LMRP UNLATCH';
     }
   }
 
-  // Slide 3 Personas Data
-  const personasData = [
-    {
-      role: '👷‍♂️ Offshore Installation Manager (OIM) — Onboard Rig Commander',
-      pain: 'Must decide whether to begin a 14-hour jack-down spudcan extraction or lock into storm hang-off mode with 110 crew onboard.',
-      workflow: 'Opens ORMWO in Gemini Enterprise, checks the live Open-Meteo `Hs` reading against the `1.50m` MWS ceiling, and downloads the Printable Engineering SOP (`india_eez_rig_move_sop_latest.html`) for deck & subsea crews.',
-      beforeAfter: 'Reduces decision latency from 6 hours of shore calls to <15 seconds with deterministic MWS gate verification.'
-    },
-    {
-      role: '⚓ Marine Warranty Surveyor (MWS — DNV-ST-N001 Certifying Authority)',
-      pain: 'Cannot issue a Certificate of Approval (CoA) for a jack-up rig move unless the 48-hour forecast peak swell stays ≤ 1.50m and 3× AHTS tugs meet bollard-pull margins.',
-      workflow: 'Inspects the 10,000-iteration Monte Carlo simulation (`P10 / P50 / P90` wet-tow duration) and 48h GenCast/GraphCast wave envelope in the 4-Panel Tactical Infographic.',
-      beforeAfter: '100% auditable DNV-ST-N001 wave & wind compliance logged automatically to the governance trail.'
-    },
-    {
-      role: '🚁 Marine & Aviation Logistics Coordinator (AHTS Tugs & Pawan Hans Helicopters)',
-      pain: 'Needs exact mobilization hours for `3× ONGC AHTS Tugs` in Western Offshore while simultaneously scheduling `Pawan Hans Dauphin N3` crew evacuation sorties in the Bay of Bengal.',
-      workflow: 'Copies the outer Markdown Engineering Phase Breakdown Table (`Table 2`) with 1 click directly into Google Sheets to dispatch tugs and shore-base helicopters.',
-      beforeAfter: 'Eliminates AHTS waiting-on-tug NPT (`₹110 Cr` CAG #15117 root cause) and coordinates 114-crew evacuation in 25 minutes.'
-    },
-    {
-      role: '📊 ONGC Asset Director & CAG #15117 Compliance Auditor',
-      pain: 'Accountable to the Ministry of Petroleum & Natural Gas and CAG auditors for eliminating the 426.5 idle rig-days caused by spudding wells without MoEFCC EC or Defence NOC.',
-      workflow: 'Reviews the rejected closer wells column (`MH-N-002 rejected: No MoEFCC EC`) and verifies the ₹71.50 Crore avoided NPT audit trail.',
-      beforeAfter: 'Zero rigs mobilized to un-cleared wells; 100% compliance with CAG Performance Audit Report #15117.'
+  // Slide 2: Hotspot selection
+  function showHotspot(topic) {
+    const pills = document.querySelectorAll('.hotspot-pill');
+    pills.forEach(p => p.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    if (topic === 'punch' || topic === 'duration' || topic === 'completed') {
+      switchBlueprint('jackup');
+    } else {
+      switchBlueprint('drillship');
     }
-  ];
-
-  function selectPersona(idx) {
-    [0,1,2,3].forEach(i => document.getElementById(`personaCard${i}`).classList.toggle('selected', i === idx));
-    const p = personasData[idx];
-    document.getElementById('personaInspector').innerHTML = `
-      <h3 style="font-size:18px; color:var(--g-blue); margin-bottom:12px;">${p.role}</h3>
-      <div class="grid-3">
-        <div style="background:#fce8e6; padding:14px; border-radius:8px;">
-          <div style="font-size:11.5px; font-weight:700; color:var(--g-red); text-transform:uppercase;">Operational Pain Point</div>
-          <p style="font-size:13px; margin-top:6px; line-height:1.5;">${p.pain}</p>
-        </div>
-        <div style="background:#e8f0fe; padding:14px; border-radius:8px;">
-          <div style="font-size:11.5px; font-weight:700; color:var(--g-blue); text-transform:uppercase;">How They Use ORMWO in Gemini Enterprise</div>
-          <p style="font-size:13px; margin-top:6px; line-height:1.5;">${p.workflow}</p>
-        </div>
-        <div style="background:#e6f4ea; padding:14px; border-radius:8px;">
-          <div style="font-size:11.5px; font-weight:700; color:var(--g-green); text-transform:uppercase;">Measurable Impact</div>
-          <p style="font-size:13px; margin-top:6px; line-height:1.5;">${p.beforeAfter}</p>
-        </div>
-      </div>
-    `;
   }
 
-  // Slide 4 Architecture Nodes Data
-  const archNodesData = [
-    {
-      title: 'Layer 01 · Gemini Enterprise & Clean A2UI v0.9 Presentation Layer',
-      file: 'app/render/rig_fleet_card.py & app/integration/agent.py',
-      desc: 'Separates the visual infographic from the copyable data tables: the A2UI Card (`build_rig_fleet_components`) renders ONLY the interactive `VegaChart` infographic, while all Markdown tables and properly headed links live outside in the main chat bubble for 1-click copying to Google Sheets.',
-      code: `// A2UI Card contains ONLY the visual infographic (no cramped text tables inside card)
-chart_comp = {"id": "rfc-chart-vega", "component": "VegaChart", "spec": vega_spec, "height": 860}
-// Outer Markdown stream contains Table 1 & Table 2 (Google-Sheets copy-ready) + ### Headed Links`
+  // Slide 5: Architecture code inspector
+  const archSnippets = {
+    ui: {
+      title: 'A2UI v0.9 CARD RENDERER (app/render/rig_fleet_card.py)',
+      code: `def build_rig_fleet_components(summary: FleetSummary):
+    # Pure visual interactive infographic inside the card
+    chart_comp = {
+        "id": "rfc-chart-vega",
+        "component": "VegaChart",
+        "spec": vega_spec,
+        "height": 860
+    }
+    # Text tables & headed links emitted OUTSIDE in main Markdown
+    return [root_card, column, chart_comp]`
     },
-    {
-      title: 'Layer 02 · History Sanitizer (`before_model_callback`)',
-      file: 'app/integration/agent.py :: sanitize_llm_request_history()',
-      desc: 'Strips prior-turn `<a2a_datapart_json>` envelopes and `inline_data` PNG bytes before sending conversation history to Gemini 2.5 Flash, preventing context bloat and token runaway loops across multi-turn sessions.',
+    guard: {
+      title: 'HISTORY SANITIZER (app/integration/agent.py)',
       code: `def sanitize_llm_request_history(callback_context, llm_request):
-    # Strips prior inline_data PNGs and A2UI envelopes before invoking Gemini
+    # Strips prior <a2a_datapart_json> and inline_data PNG bytes
+    for content in llm_request.contents:
+        content.parts = [p for p in content.parts if not p.inline_data]
     llm_request.config.temperature = 0.0
     llm_request.config.thinking_config = ThinkingConfig(thinking_budget=0)`
     },
-    {
-      title: 'Layer 03 · Single Root Agent (`Gemini 2.5 Flash`)',
-      file: 'app/integration/agent.py :: root_agent',
-      desc: 'Follows the Single-Root Agent operational principle (`temperature=0.0`, `thinking_budget=0`). Delegates 100% of metocean, spatial distance, EC/NOC filtering, and cost simulation to deterministic Python tools.',
-      code: `root_agent = Agent(
-    name="rig_navigator_agent",
-    model=Gemini(model="gemini-2.5-flash"),
-    tools=[forecast_storm_zones_and_redeployments, get_marine_weather_forecast, ...]
-)`
-    },
-    {
-      title: 'Layer 04 · Live Open-Meteo Marine & Atmospheric Telemetry Feed',
-      file: 'app/rigs/live_metocean_feed.py :: fetch_live_india_eez_metocean()',
-      desc: 'Queries `https://marine-api.open-meteo.com/v1/marine` and `https://api.open-meteo.com/v1/forecast` in real time across all 7 Indian offshore basins (`Mumbai High = 1.22m Calm` vs `Bay of Bengal = 2.80m–4.98m Storm`).',
-      code: `GET https://marine-api.open-meteo.com/v1/marine?latitude=19.41&longitude=71.33&current=wave_height,wave_period
--> Mumbai High Live Hs = 1.22m (<= 1.50m MWS Gate: GREEN_MWS_RIG_MOVE_WINDOW)
--> Mahanadi Bay of Bengal Live Hs = 4.98m (> 2.50m MWS Gate: RED_STORM_RIDE_OUT_AND_CREW_EVAC)`
-    },
-    {
-      title: 'Layer 05 · Google DeepMind GenCast & GraphCast 48h Weather Ensembles',
-      file: 'app/rigs/google_weather_models.py :: evaluate_all_storm_zones_and_safe_well_relocations()',
-      desc: 'Synthesizes 48-hour probabilistic wave/wind polygons across Western and Eastern Offshore basins and evaluates whether a 38-hour rig move can safely complete before `Hs` crosses `1.50m`.',
-      code: `if live_hs <= 1.50 and well_status in ("WELL_COMPLETED", "DRY_HOLE_PLUGGED"):
-    directive = "AUTHORIZE_3X_AHTS_WET_TOW_TO_CLOSEST_EC_CLEARED_WELL"
-else:
-    directive = "PROHIBIT_RIG_MOVE_EXECUTE_BOP_HANGOFF_AND_HELI_EVAC"`
-    },
-    {
-      title: 'Layer 06 · 10,000-Iteration NumPy Monte Carlo Wet-Tow Optimizer',
-      file: 'app/rigs/monte_carlo_optimizer.py :: execute_monte_carlo_transit_simulation()',
-      desc: 'Simulates 10,000 wet-tow trajectories under stochastic current drift, squall probability, and `3× AHTS` bollard pull to compute `P10 / P50 / P90` transit hours and net avoided NPT (`₹ Cr`).',
-      code: `sim = execute_monte_carlo_transit_simulation(rig_id="RIG-OFFSHORE-04")
-# Returns p50_duration_hours=38.1, net_savings_inr_crore=11.50, waypoints=[...]`
-    },
-    {
-      title: 'Layer 07 · 120-Well Statutory Clearance Registry & CAG #15117 Audit Logger',
-      file: 'app/rigs/india_eez_dataset.py & app/bq/audit_logger.py',
-      desc: 'Maintains 20 Indian offshore rigs and 120 candidate wells across 7 basins, filtering out candidate wells that lack MoEFCC Environmental Clearance (`EC`), Defence `NOC`, or pre-jetted conductors.',
-      code: `Rejected: WELL-MH-N-002 (4.1 NM) -> Reason: Missing MoEFCC Environmental Clearance (CAG #15117)
-Selected: WELL-IND-004 (8.4 NM) -> Status: EC_CLEARED + DEFENCE_NOC_VERIFIED + CONDUCTOR_JETTED`
-    },
-    {
-      title: 'Layer 08 · Deterministic Multi-Surface Publisher (`after_agent_callback`)',
-      file: 'app/render/india_map_png.py & app/render/interactive_html_map.py',
-      desc: 'Renders the 1680×1080 4-Panel PNG Infographic (`Pillow`), the Full-Screen Interactive Bathymetric HTML Map, and the Printable MWS Engineering SOP Document, uploading all assets to `gs://zuhaibp-ai-agent-staging/interactive_maps/`.',
-      code: `publish_interactive_html_map(pending_fleet, surface_id, png_bytes=png_bytes)
-# Publishes india_eez_latest.html, india_eez_rig_move_sop_latest.html & india_eez_4panel_latest.png`
+    tools: {
+      title: 'OPEN-METEO MARINE API TOOL (app/rigs/live_metocean_feed.py)',
+      code: `@tool
+def get_marine_weather_forecast(lat: float, lon: float):
+    # Real-time ECMWF WAM wave & wind telemetry
+    url = f"https://marine-api.open-meteo.com/v1/marine?latitude={lat}&longitude={lon}&current=wave_height"
+    res = requests.get(url, timeout=3.0).json()
+    return {"live_hs_m": res["current"]["wave_height"], "mws_status": ...}`
     }
-  ];
+  };
 
-  function selectArchNode(idx) {
-    for (let i = 0; i < 8; i++) {
-      document.getElementById(`archNode${i}`).classList.toggle('active', i === idx);
+  function showArch(key) {
+    document.querySelectorAll('.panel-card.interactive').forEach(c => c.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    const s = archSnippets[key];
+    if (s) {
+      document.getElementById('archCodeTitle').innerText = s.title;
+      document.getElementById('archCodeBody').innerText = s.code;
     }
-    const n = archNodesData[idx];
-    document.getElementById('archInspector').innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <h3 style="font-size:17px; color:var(--g-blue);">${n.title}</h3>
-        <span class="badge badge-blue" style="font-family:'JetBrains Mono',monospace;">📁 ${n.file}</span>
-      </div>
-      <p style="font-size:13.5px; color:var(--text-primary); margin-top:8px; line-height:1.55;">${n.desc}</p>
-      <pre class="code-box">${n.code}</pre>
-    `;
   }
 
-  function copyPrompt(idx, btn) {
-    const text = document.getElementById(`promptText${idx}`).innerText;
-    navigator.clipboard.writeText(text);
-    const old = btn.innerText;
-    btn.innerText = '✅ Copied to Clipboard!';
-    setTimeout(() => { btn.innerText = old; }, 2000);
+  // Slide 6: Prompt Copying
+  function copyPrompt(id, card) {
+    const txt = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(txt);
+    const badge = card.querySelector('div:last-child');
+    const prev = badge.innerText;
+    badge.innerText = '✅ Copied to Clipboard!';
+    badge.style.color = '#1e8e3e';
+    setTimeout(() => {
+      badge.innerText = prev;
+      badge.style.color = '';
+    }, 2000);
   }
-
-  // Initialize interactive panels on load
-  selectCagFinding(0);
-  setEngineeringMode('A');
-  selectPersona(0);
-  selectArchNode(0);
 </script>
 </body>
 </html>
