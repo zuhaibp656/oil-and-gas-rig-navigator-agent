@@ -45,7 +45,7 @@ def build_executive_presentation_html(project_id: str | None = None) -> str:
 
 
 HTML_TEMPLATE = """<!DOCTYPE html>
-<html lang="en" class="theme-dark">
+<html lang="en" class="theme-light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -58,7 +58,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
      Google Cloud "Aurora" Design Tokens & Brand System
      ═══════════════════════════════════════════════════════════════════════════ */
   :root {
-    --g-blue: #3186FF;
+    --g-blue: #1A73E8;
     --g-purple: #4B31E3;
     --g-green: #00AF57;
     --g-yellow: #FEC700;
@@ -70,11 +70,64 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     --font-body: 'Google Sans Text', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'Roboto Mono', 'Google Sans Mono', monospace;
 
-    --gemini-spark: linear-gradient(135deg, #3186FF 0%, #4B31E3 100%);
-    --transform-grad: linear-gradient(135deg, #00AF57 0%, #3186FF 100%);
-    --grad-security: linear-gradient(90deg, #00D2B4 0%, #00A3FF 100%);
-    --grad-aurora: linear-gradient(90deg, #217BFE 0%, #078EFB 33%, #AC87EB 67%, #EE4D5D 100%);
+    --gemini-spark: linear-gradient(135deg, #1A73E8 0%, #4B31E3 100%);
+    --transform-grad: linear-gradient(135deg, #00AF57 0%, #1A73E8 100%);
+    --grad-security: linear-gradient(90deg, #008775 0%, #0066CC 100%);
+    --grad-aurora: linear-gradient(90deg, #1A73E8 0%, #078EFB 33%, #8430CE 67%, #D93025 100%);
 
+    /* ── LIGHT COLOR SCHEME (NATIVE DEFAULT) ── */
+    --canvas: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-card: #FFFFFF;
+    --surface-sunk: #F1F5F9;
+    --border-hairline: #E2E8F0;
+    --border-subtle: #CBD5E1;
+    --border-strong: #94A3B8;
+    --text: #0F172A;
+    --text-muted: #475569;
+    --text-dim: #64748B;
+    --accent: #1A73E8;
+
+    --blue-ink: #1A73E8;
+    --green-ink: #137333;
+    --red-ink: #C5221F;
+    --amber-ink: #B06000;
+    --purple-ink: #681DA8;
+    --cyan-ink: #007B83;
+    --security-turquoise: #008775;
+    --security-azure: #0066CC;
+
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --cockpit-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  html.theme-light, body.theme-light {
+    --canvas: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-card: #FFFFFF;
+    --surface-sunk: #F1F5F9;
+    --border-hairline: #E2E8F0;
+    --border-subtle: #CBD5E1;
+    --border-strong: #94A3B8;
+    --text: #0F172A;
+    --text-muted: #475569;
+    --text-dim: #64748B;
+    --accent: #1A73E8;
+
+    --blue-ink: #1A73E8;
+    --green-ink: #137333;
+    --red-ink: #C5221F;
+    --amber-ink: #B06000;
+    --purple-ink: #681DA8;
+    --cyan-ink: #007B83;
+    --security-turquoise: #008775;
+    --security-azure: #0066CC;
+
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --cockpit-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  html.theme-dark, body.theme-dark {
     --canvas: #06090E;
     --surface: #12151C;
     --surface-card: rgba(18, 21, 28, 0.85);
@@ -85,7 +138,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     --text: #F8F9FC;
     --text-muted: #94A3B8;
     --text-dim: #64748B;
-    --accent: var(--g-blue);
+    --accent: #3186FF;
 
     --blue-ink: #8AB4F8;
     --green-ink: #5BB974;
@@ -95,29 +148,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     --cyan-ink: #6FD3E0;
     --security-turquoise: #00D2B4;
     --security-azure: #00A3FF;
-  }
 
-  html.theme-light, body.theme-light {
-    --canvas: #F8F9FC;
-    --surface: #FFFFFF;
-    --surface-card: rgba(255, 255, 255, 0.92);
-    --surface-sunk: #F1F3F9;
-    --border-hairline: #E2E8F0;
-    --border-subtle: #CBD5E1;
-    --border-strong: #94A3B8;
-    --text: #121317;
-    --text-muted: #475569;
-    --text-dim: #64748B;
-    --accent: #286DD1;
-
-    --blue-ink: #286DD1;
-    --green-ink: #007F3F;
-    --red-ink: #C62A27;
-    --amber-ink: #8A6200;
-    --purple-ink: #4B31E3;
-    --cyan-ink: #0A7684;
-    --security-turquoise: #008775;
-    --security-azure: #0066CC;
+    --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    --cockpit-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -271,38 +304,38 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   /* ── Gemini Enterprise Command Cockpit Pill Bar ───────────────────────── */
   .gemini-cockpit {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 24px;
     padding: 16px 22px;
     display: flex; align-items: center; gap: 16px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--cockpit-shadow);
     max-width: 1040px; margin-bottom: 24px;
   }
   .gemini-brand-badge {
     display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   }
   .gemini-spark-svg {
-    width: 26px; height: 26px; filter: drop-shadow(0 0 8px rgba(49, 134, 255, 0.7));
+    width: 26px; height: 26px; filter: drop-shadow(0 0 8px rgba(26, 115, 232, 0.45));
   }
   .gemini-brand-text {
     font-family: var(--font-display); font-size: 18px; font-weight: 700;
     color: var(--text); letter-spacing: -0.2px;
   }
   .gemini-cockpit-divider {
-    width: 1px; height: 32px; background: var(--border-hairline); flex-shrink: 0;
+    width: 1px; height: 32px; background: var(--border-subtle); flex-shrink: 0;
   }
   .gemini-prompt-box {
     flex: 1; min-width: 0;
   }
   .gemini-prompt-text {
     font-size: 15px; font-style: italic; color: var(--blue-ink);
-    line-height: 1.45; word-break: break-word;
+    line-height: 1.45; word-break: break-word; font-weight: 500;
   }
   .gemini-exec-btn {
-    background: rgba(49, 134, 255, 0.22);
+    background: rgba(26, 115, 232, 0.08);
     border: 1px solid var(--blue-ink);
-    color: var(--text); font-family: var(--font-display);
+    color: var(--blue-ink); font-family: var(--font-display);
     font-size: 13.5px; font-weight: 700; padding: 8px 16px;
     border-radius: 12px; cursor: pointer; white-space: nowrap;
     transition: all 0.2s ease;
@@ -318,24 +351,26 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .query-chip {
     font-family: var(--font-mono); font-size: 11px; font-weight: 700;
     padding: 6px 14px; border-radius: 999px;
-    background: var(--surface); border: 1px solid var(--border-hairline);
+    background: var(--surface); border: 1px solid var(--border-subtle);
     color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   }
   .query-chip:hover, .query-chip.active {
     border-color: var(--security-turquoise);
     color: var(--security-turquoise);
-    background: rgba(0, 210, 180, 0.08);
+    background: rgba(0, 135, 117, 0.08);
   }
 
   /* Animated Agent Execution Response Box */
   .agent-response-drawer {
-    background: rgba(11, 15, 25, 0.95);
-    border: 1px solid rgba(0, 210, 180, 0.35);
+    background: var(--surface-sunk);
+    border: 1px solid var(--border-subtle);
     border-left: 4px solid var(--security-turquoise);
     border-radius: 12px;
     padding: 16px 20px;
     max-width: 1040px; margin-bottom: 32px;
     display: block;
+    box-shadow: var(--card-shadow);
   }
   .drawer-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -343,9 +378,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     letter-spacing: 1px; color: var(--security-turquoise); margin-bottom: 8px;
   }
   .drawer-body {
-    font-size: 14.5px; line-height: 1.55; color: #E2E8F0;
+    font-size: 14.5px; line-height: 1.55; color: var(--text);
   }
-  .drawer-body strong { color: #FFFFFF; font-weight: 700; }
+  .drawer-body strong { color: var(--text); font-weight: 700; }
   .drawer-foot {
     margin-top: 10px; font-family: var(--font-mono); font-size: 11px;
     color: var(--text-dim); display: flex; gap: 14px; flex-wrap: wrap;
@@ -358,11 +393,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;
   }
   .meta-card {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-left: 3px solid var(--security-turquoise);
     border-radius: 8px; padding: 14px 18px;
     display: flex; flex-direction: column; gap: 6px;
+    box-shadow: var(--card-shadow);
   }
   .meta-card-label {
     font-family: var(--font-mono); font-size: 11px; font-weight: 700;
@@ -380,10 +416,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     padding-top: 28px;
   }
   .metric-box {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 10px; padding: 20px 18px;
     display: flex; flex-direction: column;
+    box-shadow: var(--card-shadow);
     transition: transform 0.18s ease, border-color 0.18s ease;
   }
   .metric-box:hover {
@@ -411,10 +448,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     align-items: stretch; margin-bottom: 36px;
   }
   .blueprint-card {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px; padding: 22px;
     display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: var(--card-shadow);
   }
   .blueprint-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -423,21 +461,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }
   .blueprint-title {
     font-family: var(--font-display); font-size: 18px; font-weight: 700;
+    color: var(--text);
     display: flex; align-items: center; gap: 10px;
   }
   .badge-tag {
     font-family: var(--font-mono); font-size: 10px; font-weight: 700;
     letter-spacing: 0.8px; text-transform: uppercase;
     padding: 3px 8px; border-radius: 4px;
-    background: rgba(0, 210, 180, 0.12); color: var(--security-turquoise);
-    border: 1px solid rgba(0, 210, 180, 0.3);
+    background: rgba(0, 135, 117, 0.1); color: var(--security-turquoise);
+    border: 1px solid rgba(0, 135, 117, 0.3);
   }
   .cad-canvas-box {
-    background: #080B11;
-    border: 1px solid rgba(49, 134, 255, 0.25);
+    background: #0B132B;
+    border: 1px solid #1E293B;
     border-radius: 8px; padding: 14px;
     min-height: 220px; display: flex; align-items: center; justify-content: center;
     position: relative; margin-bottom: 16px; overflow: hidden;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
   }
   .cad-specs-list {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
@@ -464,27 +504,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .rig-tab-btn {
     font-family: var(--font-display); font-size: 13px; font-weight: 700;
     padding: 8px 16px; border-radius: 8px;
-    background: var(--surface-card); border: 1px solid var(--border-hairline);
+    background: var(--surface); border: 1px solid var(--border-subtle);
     color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   }
   .rig-tab-btn:hover, .rig-tab-btn.active {
-    background: rgba(49, 134, 255, 0.18);
-    border-color: var(--blue-ink); color: #FFFFFF;
+    background: rgba(26, 115, 232, 0.08);
+    border-color: var(--blue-ink); color: var(--blue-ink);
   }
 
   .rig-live-detail-card {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px; padding: 24px;
     display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px;
     margin-bottom: 28px;
+    box-shadow: var(--card-shadow);
   }
   .live-pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 10px; border-radius: 20px; font-family: var(--font-mono);
     font-size: 11px; font-weight: 700;
   }
-  .pill-green { background: rgba(0, 175, 87, 0.15); color: var(--green-ink); border: 1px solid var(--green-ink); }
+  .pill-green { background: rgba(0, 175, 87, 0.12); color: var(--green-ink); border: 1px solid var(--green-ink); }
   .pill-amber { background: rgba(254, 199, 0, 0.15); color: var(--amber-ink); border: 1px solid var(--amber-ink); }
   .pill-red { background: rgba(252, 65, 61, 0.15); color: var(--red-ink); border: 1px solid var(--red-ink); }
 
@@ -494,20 +536,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     margin-bottom: 32px;
   }
   .surface-action-card {
-    background: var(--surface-card);
-    border: 1px solid var(--border-hairline);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 10px; padding: 16px 18px;
     display: flex; align-items: center; justify-content: space-between;
     text-decoration: none; color: inherit;
     transition: all 0.18s ease;
+    box-shadow: var(--card-shadow);
   }
   .surface-action-card:hover {
     border-color: var(--blue-ink); transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
   .surface-card-left { display: flex; align-items: center; gap: 12px; }
   .surface-icon { font-size: 24px; }
-  .surface-card-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+  .surface-card-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
   .surface-card-sub { font-size: 11.5px; color: var(--text-dim); }
   .surface-arrow { font-size: 16px; color: var(--blue-ink); font-weight: 700; }
 
@@ -516,8 +559,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: flex; justify-content: space-between; align-items: center;
     border-top: 1px solid var(--border-hairline);
     padding: 18px 22px; flex-wrap: wrap; gap: 16px;
-    background: var(--surface-card); border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border-subtle);
+    border-radius: 10px;
     margin-top: 16px;
+    box-shadow: var(--card-shadow);
   }
   .pivot-title {
     font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text);
@@ -528,22 +573,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     color: var(--security-turquoise); text-decoration: none;
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 18px; border-radius: 20px;
-    background: rgba(0, 210, 180, 0.08); border: 1px solid rgba(0, 210, 180, 0.35);
+    background: rgba(0, 135, 117, 0.08); border: 1px solid rgba(0, 135, 117, 0.35);
     cursor: pointer; transition: all 0.18s ease;
   }
   .pivot-next-btn:hover {
-    background: rgba(0, 210, 180, 0.2); transform: translateX(3px);
+    background: rgba(0, 135, 117, 0.18); transform: translateX(3px);
   }
 
   /* ── Floating Slide Dock ──────────────────────────────────────────────── */
   .floating-dock {
     position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
     z-index: 999; display: flex; align-items: center; gap: 6px;
-    background: rgba(18, 21, 28, 0.88);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: blur(16px);
-    border: 1px solid var(--border-hairline);
+    border: 1px solid var(--border-subtle);
     border-radius: 999px; padding: 6px 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
   }
   .dock-pill {
     border: none; background: transparent; color: var(--text-muted);
@@ -551,10 +596,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     padding: 6px 14px; border-radius: 999px; cursor: pointer;
     transition: all 0.18s ease; display: flex; align-items: center; gap: 6px;
   }
-  .dock-pill:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+  .dock-pill:hover { color: var(--text); background: var(--surface-sunk); }
   .dock-pill.active {
     background: var(--g-blue); color: #FFFFFF;
-    box-shadow: 0 2px 10px rgba(49, 134, 255, 0.4);
+    box-shadow: 0 2px 10px rgba(26, 115, 232, 0.35);
   }
 
   /* Responsive Rules */
@@ -572,7 +617,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 
-<body>
+<body class="theme-light">
 
 <!-- ── Top Master Header ────────────────────────────────────────────────── -->
 <header class="mast">
@@ -598,7 +643,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <button class="nav-btn" id="nextBtn" onclick="nextSlide()" title="Next slide (Right Arrow)">Next →</button>
 
     <!-- Theme Toggle -->
-    <button class="nav-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">☀️ Light</button>
+    <button class="nav-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙 Dark</button>
 
     <!-- Launch Direct Action -->
     <a href="__MAP_URL__" target="_blank" class="mast-cta" title="Launch Interactive EEZ Map">Live Map ↗</a>
@@ -615,7 +660,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="wrap-max">
 
       <!-- Executive Briefing Chip -->
-      <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px; background: rgba(18, 23, 28, 0.85); border: 1px solid var(--border-hairline); border-radius: 20px; font-size: 12px; font-weight: 700; color: #FFFFFF; margin-bottom: 20px;">
+      <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 20px; box-shadow: var(--card-shadow);">
         <span style="width: 7px; height: 7px; background: var(--security-turquoise); border-radius: 50%; box-shadow: 0 0 10px var(--security-turquoise); display: inline-block;"></span>
         <span style="letter-spacing: 1.2px; font-family: var(--font-display);">EXECUTIVE BRIEFING · SOVEREIGN RIG NAVIGATOR</span>
       </div>
@@ -746,21 +791,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <!-- Framed Rig Asset Visual -->
-        <div style="position: relative; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0, 163, 255, 0.35); background: rgba(13, 17, 23, 0.7); box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+        <div style="position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-subtle); background: var(--surface); box-shadow: var(--card-shadow);">
           <img src="__RIG_PHOTO_URI__" alt="High-Consequence Offshore Rig Asset" style="width: 100%; height: 230px; object-fit: cover; object-position: center 65%; display: block;">
-          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 9, 14, 0.08) 0%, rgba(6, 9, 14, 0.4) 45%, rgba(6, 9, 14, 0.95) 100%);"></div>
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.35) 45%, rgba(15, 23, 42, 0.88) 100%);"></div>
           
-          <div style="position: absolute; top: 14px; left: 16px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(6, 9, 14, 0.85); border: 1px solid var(--security-turquoise); border-radius: 4px; backdrop-filter: blur(8px);">
+          <div style="position: absolute; top: 14px; left: 16px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-subtle); border-radius: 4px; backdrop-filter: blur(8px);">
             <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--security-turquoise); box-shadow: 0 0 6px var(--security-turquoise);"></span>
-            <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.8px;">OFFSHORE OPERATIONAL ASSET</span>
+            <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text); letter-spacing: 0.8px;">OFFSHORE OPERATIONAL ASSET</span>
           </div>
 
           <div style="position: absolute; bottom: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
-              <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--security-turquoise); letter-spacing: 1px;">CRITICAL RIG SPREAD</div>
+              <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #5EEAD4; letter-spacing: 1px;">CRITICAL RIG SPREAD</div>
               <div style="font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: #FFFFFF; margin-top: 2px;">Jack-Up &amp; Ultra-Deepwater Drillship Fleet</div>
             </div>
-            <span style="padding: 4px 10px; border-radius: 4px; background: rgba(0, 163, 255, 0.2); border: 1px solid rgba(0, 163, 255, 0.5); font-family: var(--font-mono); font-size: 11px; color: var(--security-azure); font-weight: 700; white-space: nowrap;">₹1.2 Cr / Day Spread Rate</span>
+            <span style="padding: 4px 10px; border-radius: 4px; background: rgba(0, 163, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.4); font-family: var(--font-mono); font-size: 11px; color: #FFFFFF; font-weight: 700; white-space: nowrap;">₹1.2 Cr / Day Spread Rate</span>
           </div>
         </div>
       </div>
@@ -1044,7 +1089,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <div class="rig-live-detail-card">
         <div>
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <h3 style="font-family: var(--font-display); font-size: 22px; font-weight: 800; color: #FFFFFF;" id="rigDetailName">
+            <h3 style="font-family: var(--font-display); font-size: 22px; font-weight: 800; color: var(--text);" id="rigDetailName">
               Sagar Samrat (Jack-Up)
             </h3>
             <span class="live-pill pill-green" id="rigDetailStatusPill">DNV-ST-N001 APPROVED · GO</span>
@@ -1069,9 +1114,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
           </div>
 
-          <div style="background: rgba(0, 210, 180, 0.08); border: 1px solid rgba(0, 210, 180, 0.25); border-radius: 8px; padding: 12px 16px;">
+          <div style="background: rgba(0, 135, 117, 0.08); border: 1px solid rgba(0, 135, 117, 0.25); border-radius: 8px; padding: 12px 16px;">
             <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--security-turquoise); margin-bottom: 4px;">ORMWO AUTONOMOUS DIRECTIVE</div>
-            <div style="font-size: 13.5px; color: #FFFFFF;" id="rigAgentDirective">
+            <div style="font-size: 13.5px; color: var(--text);" id="rigAgentDirective">
               "Grant immediate mobilization clearance for 04:00 IST departure. Maintain continuous AIS towing corridor speed at 4.2 knots. Avoided ₹1.2 Cr idle standby NPT."
             </div>
           </div>
@@ -1170,10 +1215,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 36px;">
         
         <!-- Column 1: Sovereign Ingestion -->
-        <div style="background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 12px; padding: 22px; display: flex; flex-direction: column;">
+        <div style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);">
           <div style="height: 3px; width: 36px; background: var(--security-turquoise); border-radius: 2px; margin-bottom: 16px;"></div>
           <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--security-turquoise); letter-spacing: 1px; margin-bottom: 8px;">LAYER 01 // TELEMETRY INGESTION</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #FFFFFF; margin-bottom: 12px;">Sovereign Sensor Mesh</h3>
+          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 12px;">Sovereign Sensor Mesh</h3>
           <ul style="font-size: 13.5px; line-height: 1.7; color: var(--text-muted); list-style: none; padding: 0;">
             <li>• <strong>INCOIS Buoy Network:</strong> Real-time wave and tidal telemetry synced via GCS storage buckets.</li>
             <li>• <strong>DeepMind WeatherNext:</strong> High-resolution 48-hour global ensemble forecasting with 0.1° spatial resolution.</li>
@@ -1183,10 +1228,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <!-- Column 2: Agentic Reasoning -->
-        <div style="background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 12px; padding: 22px; display: flex; flex-direction: column;">
+        <div style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);">
           <div style="height: 3px; width: 36px; background: var(--g-blue); border-radius: 2px; margin-bottom: 16px;"></div>
           <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--blue-ink); letter-spacing: 1px; margin-bottom: 8px;">LAYER 02 // REASONING CORE</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #FFFFFF; margin-bottom: 12px;">Google ADK Root Agent</h3>
+          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 12px;">Google ADK Root Agent</h3>
           <ul style="font-size: 13.5px; line-height: 1.7; color: var(--text-muted); list-style: none; padding: 0;">
             <li>• <strong>Gemini 2.5 Flash:</strong> Ultra-fast reasoning bounded by <code>max_output_tokens=1024</code> for terse, deterministic output.</li>
             <li>• <strong>Deterministic Python Solvers:</strong> NumPy/SciPy tow window algorithms and bollard pull calculators.</li>
@@ -1196,10 +1241,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <!-- Column 3: Surface Delivery -->
-        <div style="background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 12px; padding: 22px; display: flex; flex-direction: column;">
+        <div style="background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; box-shadow: var(--card-shadow);">
           <div style="height: 3px; width: 36px; background: #C084FC; border-radius: 2px; margin-bottom: 16px;"></div>
           <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--purple-ink); letter-spacing: 1px; margin-bottom: 8px;">LAYER 03 // SURFACE DELIVERY</div>
-          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #FFFFFF; margin-bottom: 12px;">Vertex AI Runtime</h3>
+          <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 12px;">Vertex AI Runtime</h3>
           <ul style="font-size: 13.5px; line-height: 1.7; color: var(--text-muted); list-style: none; padding: 0;">
             <li>• <strong>Reasoning Engine:</strong> Deployed in-place on Vertex AI (Resource ID <code>4687908012755517440</code>).</li>
             <li>• <strong>Dynamic A2UI Envelope:</strong> Interactive Vega charts and UI cards attached via <code>after_agent_callback</code>.</li>
@@ -1340,12 +1385,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   // Theme Toggle (Dark / Light Mode)
   function toggleTheme() {
-    const isCurrentlyLight = document.documentElement.classList.toggle('theme-light');
-    document.documentElement.classList.toggle('theme-dark', !isCurrentlyLight);
-    document.body.classList.toggle('theme-light', isCurrentlyLight);
-    document.body.classList.toggle('theme-dark', !isCurrentlyLight);
-    localStorage.setItem('deck-theme', isCurrentlyLight ? 'light' : 'dark');
-    updateThemeToggleBtn(isCurrentlyLight);
+    const isCurrentlyLight = document.documentElement.classList.contains('theme-light');
+    const newIsLight = !isCurrentlyLight;
+    
+    document.documentElement.classList.toggle('theme-light', newIsLight);
+    document.documentElement.classList.toggle('theme-dark', !newIsLight);
+    document.body.classList.toggle('theme-light', newIsLight);
+    document.body.classList.toggle('theme-dark', !newIsLight);
+    localStorage.setItem('deck-theme', newIsLight ? 'light' : 'dark');
+    updateThemeToggleBtn(newIsLight);
   }
 
   function updateThemeToggleBtn(isLight) {
@@ -1357,13 +1405,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   // Initialize from Hash or LocalStorage
   document.addEventListener('DOMContentLoaded', function() {
-    // Theme restore
-    const savedTheme = localStorage.getItem('deck-theme') || 'dark';
-    const isLight = savedTheme === 'light';
+    // Theme restore: DEFAULT TO 'light'
+    const savedTheme = localStorage.getItem('deck-theme') || 'light';
+    const isLight = (savedTheme === 'light');
     if (isLight) {
       document.documentElement.classList.add('theme-light');
       document.documentElement.classList.remove('theme-dark');
       document.body.classList.add('theme-light');
+      document.body.classList.remove('theme-dark');
+    } else {
+      document.documentElement.classList.add('theme-dark');
+      document.documentElement.classList.remove('theme-light');
+      document.body.classList.add('theme-dark');
+      document.body.classList.remove('theme-light');
     }
     updateThemeToggleBtn(isLight);
 
@@ -1509,3 +1563,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </body>
 </html>
 """
+
+if __name__ == "__main__":
+    content = build_executive_presentation_html()
+    out_path = Path(__file__).resolve().parent.parent.parent / "ormwo_executive_presentation.html"
+    out_path.write_text(content, encoding="utf-8")
+    print(f"[SUCCESS] Generated executive presentation deck in light color scheme: {out_path} ({len(content)} bytes)")
+
