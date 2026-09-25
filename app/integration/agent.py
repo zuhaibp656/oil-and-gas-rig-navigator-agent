@@ -156,10 +156,9 @@ def _take_pending(callback_context: CallbackContext | None, key: str) -> FleetSu
 
 
 def _build_standout_links_markdown() -> str:
-    """Build a well-spaced, properly headed Markdown section for the Executive Presentation Deck, Interactive HTML Map, 4-Panel Infographic & SOP Guidelines."""
+    """Build a well-spaced, properly headed Markdown section for the Interactive HTML Map, 4-Panel Infographic & SOP Guidelines."""
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
     bucket_name = f"{project_id}-agent-staging"
-    deck_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/ormwo_executive_presentation.html"
     html_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
     html_cloud = f"https://storage.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
     sop_mtls = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_rig_move_sop_latest.html"
@@ -167,20 +166,16 @@ def _build_standout_links_markdown() -> str:
     return (
         "\n\n---\n\n"
         "## 📊 Interactive Visuals & Printable Engineering Documents\n\n"
-        "### 1. 🎯 Interactive Google-Branded Executive Presentation Deck (HTML Slides)\n"
-        "Click **Next → Next** through the 6-slide interactive deck covering CAG Report #15117, offshore rig physics, user personas, clickable ADK architecture nodes, and live India EEZ directives.\n\n"
-        f"👉 **[Open Interactive Executive Presentation Deck (HTML) ↗]({deck_mtls})**\n\n"
-        "---\n\n"
-        "### 2. 🌐 Interactive Full-Screen India EEZ Command Map (HTML)\n"
+        "### 1. 🌐 Interactive Full-Screen India EEZ Command Map (HTML)\n"
         "Pan, zoom, and click Rigs `[1]–[6]` to inspect live Open-Meteo wave/wind telemetry and 120 candidate wells in full screen.\n\n"
         f"👉 **[Open Interactive Full-Screen India EEZ Map (HTML) ↗]({html_mtls})**  \n"
         f"*(Alternate Link: [Open via storage.cloud.google.com ↗]({html_cloud}))*\n\n"
         "---\n\n"
-        "### 3. 🖼️ High-Resolution 4-Panel Tactical Infographic (1680×1080 PNG)\n"
+        "### 2. 🖼️ High-Resolution 4-Panel Tactical Infographic (1680×1080 PNG)\n"
         "View or download the full-size 4-panel tactical infographic with zoomed Mumbai High and Bay of Bengal insets.\n\n"
         f"👉 **[Open High-Resolution 4-Panel Tactical Infographic (PNG) ↗]({png_mtls})**\n\n"
         "---\n\n"
-        "### 4. 📋 ONGC / CAG Audit #15117 Engineering SOP & Logistics Guidelines (HTML)\n"
+        "### 3. 📋 ONGC / CAG Audit #15117 Engineering SOP & Logistics Guidelines (HTML)\n"
         "Printable Marine Warranty Surveyor (MWS) spudcan extraction limits, 3× AHTS tug tow checklists, and DP3 helicopter evacuation guidelines.\n\n"
         f"👉 **[Open Printable MWS & CAG #15117 Engineering SOP Document ↗]({sop_mtls})**\n"
     )
