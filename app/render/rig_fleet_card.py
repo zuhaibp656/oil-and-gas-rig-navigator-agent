@@ -62,7 +62,11 @@ def _build_relocation_markdown_table() -> str:
 
 
 def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
-    """Build the A2UI v0.9 component hierarchy for the ORMWO India EEZ Map & Engineering Decision Card."""
+    """Build the A2UI v0.9 component hierarchy containing ONLY the visual interactive infographic.
+
+    All text briefings, copy-ready Google Sheets tables, and properly headed links are emitted
+    outside in the main Markdown response so users can easily read, copy, and paste them.
+    """
     children: list[str] = []
     components: list[dict[str, Any]] = []
 
@@ -70,19 +74,13 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
         components.append(component)
         children.append(component["id"])
 
-    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or "zuhaibp-ai"
-    bucket_name = f"{project_id}-agent-staging"
-    html_mtls_url = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_latest.html"
-    sop_mtls_url = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_rig_move_sop_latest.html"
-    png_mtls_url = f"https://storage.mtls.cloud.google.com/{bucket_name}/interactive_maps/india_eez_4panel_latest.png"
-
     wells = summary.wells or INDIA_120_WELL_REGISTRY
     vega_spec = build_rig_fleet_map_spec(summary)
 
     add(
         _text(
             "rfc-title",
-            "ORMWO — Live Metocean Telemetry, MWS Rig-Move Window & Storm Crew Evacuation Command Center",
+            "ORMWO — India EEZ Live Metocean & MWS Tactical Infographic",
             "h4",
         )
     )
@@ -90,29 +88,15 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
         _text(
             "rfc-subtitle",
             (
-                f"Live Open-Meteo Telemetry: 🟢 Western Offshore Calm MWS Window (Live Hs=1.22m <= 1.5m — Move Completed Rigs [1]–[4])  ·  "
-                f"🔴 Bay of Bengal Live Swell Lock (Hs=2.80m–4.98m — Hang Off Well & Evacuate Crew [5]–[6] 🚁)  ·  "
-                f"{summary.total_rigs} Rigs & {len(wells)} Wells Monitored"
+                f"🟢 Western Offshore Calm MWS Window (Hs = 1.18m–1.22m <= 1.50m — Rigs [1]–[4] Wet Tow)  ·  "
+                f"🔴 Bay of Bengal Swell Lock (Hs = 2.80m–4.98m — Rigs [5]–[6] BOP Hang-Off & 🚁 Evac)  ·  "
+                f"{summary.total_rigs} Rigs & {len(wells)} Wells"
             ),
             "caption",
         )
     )
 
-    # Prominent Top Action Bar for Full-Screen Interactive HTML Map, SOP Guidelines Document & 4-Panel PNG
-    add(
-        _text(
-            "rfc-top-links",
-            (
-                f"🌐 **[🚀 CLICK HERE TO LAUNCH INTERACTIVE FULL-SCREEN BATHYMETRIC HTML MAP (Live Weather + Click-to-Fly [1]–[6]) ↗]({html_mtls_url})**  \n"
-                f"📋 **[🛠️ CLICK HERE TO OPEN ONGC / CAG #15117 RIG-MOVE & STORM EVACUATION SOP & LOGISTICS GUIDELINES (HTML) ↗]({sop_mtls_url})**  \n"
-                f"🖼️ **[🔍 CLICK HERE TO VIEW FULL-SIZE 1680×1080 4-PANEL COMMAND INFOGRAPHIC (PNG) ↗]({png_mtls_url})**"
-            ),
-            "body",
-        )
-    )
-    add({"id": "rfc-div-1", "component": "Divider"})
-
-    # Inline Full-Width 3-Tier Bathymetric `vega_spec` directly on VegaChart
+    # Pure visual interactive infographic inside the card rendering (no cramped text tables inside the card)
     chart_comp = {
         "id": "rfc-chart-vega",
         "component": "VegaChart",
@@ -121,48 +105,6 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
     }
     components.append(chart_comp)
     children.append("rfc-chart-vega")
-    add({"id": "rfc-div-2", "component": "Divider"})
-
-    # Section 1: Visual Legend & Engineering Key
-    add(_text("rfc-legend-hdr", "Engineering Legend & MWS Sea-State Rules (Why [1]–[4] Move vs Why [5]–[6] Hold & Evacuate)", "h5"))
-    add(
-        _text(
-            "rfc-legend-body",
-            (
-                "• **🟢 Green Dashed Circle (`Mumbai High / Bassein — Live Hs = 1.18m–1.22m <= 1.50m MWS Limit`)**: "
-                "**Calm MWS Rig-Move Window**. Rigs **`[1]`–`[4]`** have **completed their wells / dry holes** and are authorized to jack down (`14h` spudcan pull) and wet-tow (`6.8–9.6 NM @ 4.0 kt` via `3× ONGC AHTS Tugs`) to the **Closest EC-Cleared Ready Wells**.  \n"
-                "• **🔴 Red Shaded Circle (`Bay of Bengal: KG-DWN Hs = 2.80m & Mahanadi Hs = 4.98m > 2.50m Limit`)**: "
-                "**Active Cyclonic Swell Lock**. Moving a rig to a new well in `Hs > 1.50m` is **physically impossible and prohibited by MWS**. Active deepwater drillships **`[5]` & `[6]`** execute **In-Place BOP Hang-Off + LMRP Disconnect (`3.0 NM` DP3 Storm Holding Box) + `🚁` Pawan Hans Helicopter Crew Evacuation** to Rajahmundry & Paradip Shore Bases."
-            ),
-            "body",
-        )
-    )
-    add({"id": "rfc-div-3", "component": "Divider"})
-
-    # Section 2: Clean 5-Column Directives Table ([1] to [6])
-    add(_text("rfc-table-hdr", "Master Operational Directives [1]–[6] (Completed-Well Rig Moves vs Live Swell Crew Evacuation)", "h5"))
-    add(_text("rfc-table-body", _build_relocation_markdown_table(), "body"))
-    add({"id": "rfc-div-4", "component": "Divider"})
-
-    # Prominent Bottom Call-to-Action Banner
-    add(
-        _text(
-            "rfc-bottom-cta-hdr",
-            "🌐 Launch Full-Screen Interactive Command Map & Printable MWS SOP Document",
-            "h5",
-        )
-    )
-    add(
-        _text(
-            "rfc-bottom-cta-body",
-            (
-                f"👉 **[🚀 LAUNCH INTERACTIVE FULL-SCREEN BATHYMETRIC HTML COMMAND MAP (Click-to-Fly Rigs [1]–[6]) ↗]({html_mtls_url})**  \n"
-                f"👉 **[📋 OPEN PRINTABLE ONGC / MWS RIG-MOVE & STORM EVACUATION SOP & LOGISTICS GUIDELINES (HTML) ↗]({sop_mtls_url})**  \n"
-                f"👉 **[🖼️ VIEW FULL-SIZE 1680×1080 4-PANEL COMMAND INFOGRAPHIC (PNG) ↗]({png_mtls_url})**"
-            ),
-            "body",
-        )
-    )
 
     root_card = {
         "id": ROOT_CARD_ID,
@@ -176,3 +118,4 @@ def build_rig_fleet_components(summary: FleetSummary) -> list[dict[str, Any]]:
     }
 
     return [root_card, column, *components]
+
