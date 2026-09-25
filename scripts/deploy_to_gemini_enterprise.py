@@ -396,11 +396,9 @@ def register_with_gemini_enterprise(
                 "Offshore Rig Mobilization & Weather Optimizer (ORMWO) — Google DeepMind GenCast & GraphCast "
                 "48h Storm Forecasting, Safe-Well Relocation & India EEZ Command Map."
             ),
-            "icon": (
-                {"content": b64_icon}
-                if b64_icon
-                else {"uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/oil_barrel/default/24px.svg"}
-            ),
+            "icon": {
+                "uri": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/oil_barrel/default/24px.svg"
+            },
             "starterPrompts": starter_prompts,
             "adkAgentDefinition": {
                 "toolSettings": {
