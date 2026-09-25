@@ -107,6 +107,18 @@ def get_gcloud_credentials() -> google.oauth2.credentials.Credentials:
         except Exception:
             pass
 
+    if _DEFAULT_ADC_PATH.exists():
+        try:
+            creds = google.oauth2.credentials.Credentials.from_authorized_user_file(
+                str(_DEFAULT_ADC_PATH),
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            creds.refresh(Request())
+            if creds.token:
+                return creds
+        except Exception:
+            pass
+
     gcloud_bin = "/usr/local/google/home/zuhaibp/google-cloud-sdk/bin/gcloud"
     if not os.path.exists(gcloud_bin):
         gcloud_bin = "gcloud"
