@@ -418,6 +418,18 @@ def publish_interactive_html_map(
                 timeout=3.5,
                 retry=short_retry,
             )
+            try:
+                from app.render.executive_presentation_html import build_executive_presentation_html
+            except ImportError:
+                from render.executive_presentation_html import build_executive_presentation_html
+            deck_html = build_executive_presentation_html(project_id)
+            deck_blob = bucket.blob("interactive_maps/ormwo_executive_presentation.html")
+            deck_blob.upload_from_string(
+                deck_html,
+                content_type="text/html; charset=utf-8",
+                timeout=3.5,
+                retry=short_retry,
+            )
             if png_bytes:
                 png_blob = bucket.blob("interactive_maps/india_eez_4panel_latest.png")
                 png_blob.upload_from_string(
